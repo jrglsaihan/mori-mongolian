@@ -130,7 +130,8 @@ native/     Swift 原生外壳、Info.plist、构建脚本
 vendor/     离线转换引擎（WASM）与兜底字体
 tests/      自动化测试与结果证据
 docs/       截图与发布说明
-LICENSE     MIT 许可与第三方许可说明
+LICENSE     MIT 许可全文
+THIRD-PARTY-NOTICES.md  第三方组件许可与字体授权边界
 build.cjs   web 打包脚本
 ```
 
@@ -142,7 +143,7 @@ build.cjs   web 打包脚本
 | [Satsrag/mongol-convert 0.7.1](https://github.com/Satsrag/mongol-convert/tree/v0.7.1) | Apache-2.0 | 本地 WASM 编码转换，含 mongol-norm 规范化后端 |
 | [Noto Sans Mongolian](https://github.com/google/fonts/tree/main/ofl/notosansmongolian) | SIL OFL 1.1 | 兜底字体 |
 
-完整许可文本见 [`vendor/`](vendor)。构建时会自动生成 `web/THIRD-PARTY-NOTICES.txt`。
+完整许可文本见 [`vendor/`](vendor) 与 [`THIRD-PARTY-NOTICES.md`](THIRD-PARTY-NOTICES.md)。构建时会自动生成 `web/THIRD-PARTY-NOTICES.txt`。
 
 **商业字体（如本机已安装的 Menk / Menksoft 系列）不会被复制或打包**，仅在使用时由系统按名称调用。
 
@@ -156,7 +157,7 @@ build.cjs   web 打包脚本
 
 本项目原创代码采用 **MIT License**，完整文本见 [`LICENSE`](LICENSE)。
 
-这意味着你可以自由使用、修改、分发、商用这份代码，只需保留版权与许可声明。`vendor/` 下的第三方组件遵循各自许可（MIT / Apache-2.0 / OFL 1.1），文本已随代码保留。
+这意味着你可以自由使用、修改、分发、商用这份代码，只需保留版权与许可声明。`vendor/` 下的第三方组件遵循各自许可（MIT / Apache-2.0 / OFL 1.1），详见 [`THIRD-PARTY-NOTICES.md`](THIRD-PARTY-NOTICES.md)。
 
 需要留意的边界：
 

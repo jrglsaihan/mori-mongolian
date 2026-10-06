@@ -16,17 +16,3 @@ LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE A
 EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER
 IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE
 USE OR OTHER DEALINGS IN THE SOFTWARE.
-
----
-
-## 第三方组件许可 / Third-Party Licenses
-
-本项目的 MIT 许可仅适用于本项目原创代码。`vendor/` 目录下的第三方组件遵循各自许可，
-其完整许可文本已随代码保留：
-
-- **ProseMirror** — MIT
-- **Satsrag/mongol-convert 0.7.1**（含 mongol-norm 规范化后端）— Apache-2.0
-- **Noto Sans Mongolian** — SIL Open Font License 1.1
-
-本机安装的商业蒙古文字体（如 Menk / Menksoft 系列）不在本项目分发范围内，
-仅由系统在运行时按字体名称调用，其授权条款由字体厂商另行约定。
