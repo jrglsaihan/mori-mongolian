@@ -1,0 +1,27 @@
+const assert=require('node:assert/strict');const fs=require('node:fs');const path=require('node:path');const esbuild=require('esbuild');
+const root=path.resolve(__dirname,'..');const out=path.join(__dirname,'core-bundle.cjs');
+esbuild.buildSync({entryPoints:[path.join(root,'src/core.js')],outfile:out,bundle:true,platform:'node',target:'node22',format:'cjs',loader:{'.wasm':'binary'},define:{'import.meta.url':'"file:///mori-unused-async-loader"'},nodePaths:[process.env.NODE_PATH||path.join(root,'node_modules')]});
+const c=require(out);let count=0;const tests=[];function test(name,fn){try{fn();count++;tests.push({name,pass:true});}catch(e){tests.push({name,pass:false,error:e.message});}}
+const text='ᠮᠣᠩᠭᠣᠯ\u180B\u180C\u180D\u180E\u180F\u202F\u200D\u200C\n中文 😀';
+test('UTF8 exact control preservation',()=>assert.equal(c.decodeBytes(new TextEncoder().encode(text)).text,text));
+test('UTF16 LE BOM',()=>assert.equal(c.decodeBytes(Uint8Array.from([255,254,32,24])).text,'ᠠ'));
+test('UTF16 BE BOM',()=>assert.equal(c.decodeBytes(Uint8Array.from([254,255,24,32])).text,'ᠠ'));
+test('Reject invalid UTF8',()=>assert.throws(()=>c.decodeBytes(Uint8Array.from([255]))));
+test('Explicit GB18030 basic character',()=>assert.equal(c.decodeBytes(Uint8Array.from([214,208]),'gb18030').text,'中'));
+test('GB18030 Mongolian 4-byte sequence',()=>{const t=c.decodeBytes(Uint8Array.from([0x81,0x34,0xd6,0x30]),'gb18030').text;assert.equal(t,'ᠠ');});
+test('Codepoint stats include supplementary plane',()=>assert.equal(c.inspectText('ᠮ😀').characters,2));
+test('PUA is not automatically Menksoft',()=>assert.equal(c.inspectText('\uE000\uE264\u{F0000}').pua,3));
+test('Plaintext paragraph roundtrip',()=>assert.equal(c.plainText(c.textDocument(text)),text));
+test('Base64 original bytes roundtrip',()=>{const a=Uint8Array.from([0,255,128,1]);assert.deepEqual(c.b64ToBytes(c.bytesToB64(a)),a);});
+test('Document valid JSON roundtrip',()=>{const d=c.validateFile({format:'mori-document',version:1,title:'测试',profile:'2010',doc:c.textDocument(text).toJSON()});assert.equal(c.plainText(d.doc),text);assert.equal(d.profile,'2010');});
+test('Unsupported document version rejected',()=>assert.throws(()=>c.validateFile({format:'mori-document',version:99})));
+test('Unsafe node rejected',()=>assert.throws(()=>c.validateFile({format:'mori-document',version:1,title:'X',profile:'2023',doc:{type:'script'}})));
+test('Color injection sanitized',()=>assert.equal(c.safeColor('red; background:url(https://x)'), '#26312c'));
+test('HTML serialization escaping',()=>assert.equal(c.escapeHTML('<script>"&'),'&lt;script&gt;&quot;&amp;'));
+test('Converter pinned version',()=>assert.equal(c.initConverter(),'0.7.1'));
+test('Menksoft forward and reverse',()=>{const a=c.convertText('utn57','menk_shape','ᠮᠣᠩᠭᠣᠯ');assert.ok(c.inspectText(a.text).pua>0);const b=c.convertText('menk_shape','utn57',a.text);assert.ok(/[\u1820-\u1842]/u.test(b.text));});
+test('Unsupported converter profile rejected',()=>assert.throws(()=>c.convertText('oyun','utn57','x')));
+test('Unknown non-Mongolian characters preserved',()=>assert.equal(c.convertText('menk_shape','utn57','ABC 中文 😀').text,'ABC 中文 😀'));
+test('Independent profiles do not modify text',()=>{for(const p of Object.keys(c.profiles)){const d=c.validateFile({format:'mori-document',version:1,title:'测试',profile:p,doc:c.textDocument(text).toJSON()});assert.equal(c.plainText(d.doc),text);}});
+test('Lossy conversion explicitly flagged',()=>{const r=c.convertText('utn57','menk_shape','ᠮᠣᠩᠭᠣᠯ');assert.equal(r.roundTripExact,false);assert.ok(r.warnings.some(w=>w.includes('不能无损')));});
+const result={ok:count===tests.length,passed:count,total:tests.length,tests};fs.writeFileSync(path.join(__dirname,'core-results.json'),JSON.stringify(result,null,2));console.log(JSON.stringify(result,null,2));process.exitCode=result.ok?0:1;

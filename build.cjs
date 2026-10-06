@@ -1,0 +1,9 @@
+const fs=require('fs');const path=require('path');const esbuild=require('esbuild');
+const root=__dirname;const web=path.join(root,'web');fs.mkdirSync(web,{recursive:true});
+esbuild.buildSync({entryPoints:[path.join(root,'src/app.js')],outfile:path.join(web,'app.js'),bundle:true,format:'iife',target:['safari16'],loader:{'.wasm':'binary','.ttf':'base64'},define:{'import.meta.url':'"file:///mori-unused-async-loader"'},nodePaths:[process.env.NODE_PATH||path.join(root,'node_modules')],legalComments:'eof'});
+for(const file of ['index.html','styles.css'])fs.copyFileSync(path.join(root,'src',file),path.join(web,file));
+for(const file of ['NotoSansMongolian-Regular.ttf','Noto-OFL.txt','mongol-convert-LICENSE.txt','mongol-norm-LICENSE.txt'])fs.copyFileSync(path.join(root,'vendor',file),path.join(web,file));
+const modules=process.env.NODE_PATH||path.join(root,'node_modules');const pkgs=['prosemirror-model','prosemirror-state','prosemirror-view','prosemirror-commands','prosemirror-keymap','prosemirror-history','prosemirror-schema-list','orderedmap','rope-sequence','w3c-keyname'];
+let notices='Mori 0.1 third-party notices\n\nSatsrag/mongol-convert v0.7.1: https://github.com/Satsrag/mongol-convert\nApache-2.0. Unmodified WASM/JavaScript release bundled; see mongol-convert-LICENSE.txt. Includes mongol-norm normalization backend.\n\nNoto Sans Mongolian: https://github.com/google/fonts/tree/main/ofl/notosansmongolian\nSIL OFL 1.1. Unmodified fallback font. See Noto-OFL.txt.\n';
+for(const name of pkgs){const dir=path.join(modules,name);const p=JSON.parse(fs.readFileSync(path.join(dir,'package.json'),'utf8'));const license=['LICENSE','LICENSE.txt','LICENSE.md'].find(f=>fs.existsSync(path.join(dir,f)));if(!license)throw new Error('Missing license '+name);notices+='\n\n'+name+' '+p.version+'\n'+fs.readFileSync(path.join(dir,license),'utf8');}
+fs.writeFileSync(path.join(web,'THIRD-PARTY-NOTICES.txt'),notices);console.log('Web bundle built at '+web);

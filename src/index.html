@@ -1,0 +1,228 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta http-equiv="Content-Security-Policy" content="default-src 'self' data: blob:; script-src 'self' 'wasm-unsafe-eval'; style-src 'self' 'unsafe-inline'; font-src 'self' data:; img-src 'self' data: blob:; connect-src 'none'; object-src 'none'; base-uri 'none'">
+  <meta name="theme-color" content="#14191b">
+  <title>Mori / 蒙文书写</title>
+  <link rel="stylesheet" href="styles.css">
+  <script src="app.js" defer></script>
+</head>
+<body>
+  <svg class="icon-sprite" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+    <defs>
+      <symbol id="i-document" viewBox="0 0 24 24"><path d="M14 3H6a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V9Z"/><path d="M14 3v6h6M8 13h8M8 17h5"/></symbol>
+      <symbol id="i-plus" viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></symbol>
+      <symbol id="i-folder" viewBox="0 0 24 24"><path d="M3 8V5a2 2 0 0 1 2-2h5l2 3h7a2 2 0 0 1 2 2v2M3 8h16a2 2 0 0 1 2 2l-2 9H5Z"/></symbol>
+      <symbol id="i-save" viewBox="0 0 24 24"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h12l4 4v12a2 2 0 0 1-2 2Z"/><path d="M7 3v6h10V3M7 21v-8h10v8M14 5v2"/></symbol>
+      <symbol id="i-print" viewBox="0 0 24 24"><path d="M6 9V3h12v6M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2M6 14h12v7H6Z"/><path d="M18 12h.01"/></symbol>
+      <symbol id="i-export" viewBox="0 0 24 24"><path d="M12 3v12m-4-4 4 4 4-4M5 15v5h14v-5"/></symbol>
+      <symbol id="i-undo" viewBox="0 0 24 24"><path d="m9 5-5 5 5 5M4 10h10a6 6 0 0 1 0 12" transform="translate(0 -2)"/></symbol>
+      <symbol id="i-redo" viewBox="0 0 24 24"><path d="m15 5 5 5-5 5M20 10H10a6 6 0 0 0 0 12" transform="translate(0 -2)"/></symbol>
+      <symbol id="i-bold" viewBox="0 0 24 24"><path d="M7 4h6a4 4 0 0 1 0 8H7Zm0 8h7a4 4 0 0 1 0 8H7Z"/></symbol>
+      <symbol id="i-italic" viewBox="0 0 24 24"><path d="M10 4h9M5 20h9M15 4 9 20"/></symbol>
+      <symbol id="i-underline" viewBox="0 0 24 24"><path d="M6 3v7a6 6 0 0 0 12 0V3M4 21h16"/></symbol>
+      <symbol id="i-heading" viewBox="0 0 24 24"><path d="M5 4v16M17 4v16M5 12h12"/></symbol>
+      <symbol id="i-paragraph" viewBox="0 0 24 24"><path d="M12 4H9a5 5 0 0 0 0 10h3M12 4v16M17 4v16M8 4h12"/></symbol>
+      <symbol id="i-list" viewBox="0 0 24 24"><path d="M9 6h12M9 12h12M9 18h12M3 6h.01M3 12h.01M3 18h.01"/></symbol>
+      <symbol id="i-search" viewBox="0 0 24 24"><circle cx="10.5" cy="10.5" r="6.5"/><path d="m16 16 5 5"/></symbol>
+      <symbol id="i-close" viewBox="0 0 24 24"><path d="m6 6 12 12M6 18 18 6"/></symbol>
+      <symbol id="i-chevron" viewBox="0 0 24 24"><path d="m9 5 7 7-7 7"/></symbol>
+      <symbol id="i-check" viewBox="0 0 24 24"><path d="m5 12 4 4L19 6"/></symbol>
+      <symbol id="i-sliders" viewBox="0 0 24 24"><path d="M4 7h7m4 0h5M4 17h3m4 0h9"/><circle cx="13" cy="7" r="2"/><circle cx="9" cy="17" r="2"/></symbol>
+      <symbol id="i-type" viewBox="0 0 24 24"><path d="M4 7V4h16v3M12 4v16M8 20h8"/></symbol>
+      <symbol id="i-convert" viewBox="0 0 24 24"><path d="M4 7h16m-4-4 4 4-4 4M20 17H4m4-4-4 4 4 4"/></symbol>
+      <symbol id="i-shield" viewBox="0 0 24 24"><path d="m12 3 8 3v6c0 5-8 9-8 9s-8-4-8-9V6Z"/><path d="m8 12 3 3 5-6"/></symbol>
+      <symbol id="i-info" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M12 11v6M12 7h.01"/></symbol>
+      <symbol id="i-vertical" viewBox="0 0 24 24"><path d="M5 4v16m-3-3 3 3 3-3M12 4v12M17 4v12M11 21h10m-3-3 3 3-3 3"/></symbol>
+      <symbol id="i-keyboard" viewBox="0 0 24 24"><rect x="2" y="5" width="20" height="14" rx="3"/><path d="M6 9h.01M10 9h.01M14 9h.01M18 9h.01M6 12h.01M10 12h.01M14 12h.01M18 12h.01M7 16h10"/></symbol>
+      <symbol id="i-lock" viewBox="0 0 24 24"><rect x="5" y="10" width="14" height="11" rx="2"/><path d="M8 10V7a4 4 0 0 1 8 0v3M12 14v3"/></symbol>
+    </defs>
+  </svg>
+
+  <div class="app-shell">
+    <header class="app-header">
+      <div class="brand" aria-label="Mori，蒙文书写">
+        <svg class="brand-mark" viewBox="0 0 36 42" aria-hidden="true"><path d="M8 33V10l10 13 10-13v23M18 7v28"/><path d="m14 5 4-3 4 3M14 38h8"/></svg>
+        <div class="brand-copy"><span class="brand-name">Mori<span class="brand-slash"> / </span><span class="brand-chinese">蒙文书写</span></span><span class="brand-subtitle">让文字，沿着自己的方向生长</span></div>
+      </div>
+      <div class="document-heading">
+        <svg class="icon document-heading-icon" aria-hidden="true"><use href="#i-document"/></svg>
+        <div class="document-title-stack">
+          <label class="sr-only" for="docTitle">文档名称</label>
+          <input id="docTitle" type="text" value="草原上的文字" autocomplete="off" spellcheck="false">
+          <span class="save-state"><span class="status-dot" aria-hidden="true"></span><span id="saveState" role="status">本地工作区</span></span>
+        </div>
+      </div>
+      <div class="header-actions">
+        <button class="button button-quiet" type="button" data-action="print"><svg class="icon" aria-hidden="true"><use href="#i-print"/></svg><span>打印 / PDF</span></button>
+        <button id="saveButton" class="button button-primary" type="button" data-action="save"><svg class="icon" aria-hidden="true"><use href="#i-save"/></svg><span>保存</span></button>
+      </div>
+    </header>
+
+    <div class="navigation-row">
+      <div class="file-actions" aria-label="文件操作">
+        <button id="newButton" class="text-button" type="button" data-action="new"><svg class="icon" aria-hidden="true"><use href="#i-plus"/></svg>新建</button>
+        <button id="openButton" class="text-button" type="button" data-action="open"><svg class="icon" aria-hidden="true"><use href="#i-folder"/></svg>打开</button>
+      </div>
+      <nav class="tabs" aria-label="编辑工具">
+        <button class="tab active" type="button" data-tab="home" aria-current="page">开始</button>
+        <button class="tab" type="button" data-tab="insert">插入字符</button>
+        <button class="tab" type="button" data-tab="layout">页面布局</button>
+        <button class="tab" type="button" data-tab="encoding">编码工具</button>
+      </nav>
+      <button id="exportButton" class="text-button export-button" type="button" data-action="exportText"><svg class="icon" aria-hidden="true"><use href="#i-export"/></svg>导出文本</button>
+    </div>
+
+    <div class="formatting-row">
+      <div id="homeToolbar" class="toolbar" role="toolbar" aria-label="文字格式">
+        <div class="toolbar-group history-tools">
+          <button class="icon-button" type="button" data-command="undo" aria-label="撤销" title="撤销"><svg class="icon" aria-hidden="true"><use href="#i-undo"/></svg></button>
+          <button class="icon-button" type="button" data-command="redo" aria-label="重做" title="重做"><svg class="icon" aria-hidden="true"><use href="#i-redo"/></svg></button>
+        </div>
+        <div class="toolbar-group font-tools">
+          <label class="sr-only" for="fontSelect">字体</label>
+          <select id="fontSelect"><option value="Mori Noto">诺托蒙古文字体</option></select>
+          <label class="sr-only" for="fontSize">字号</label>
+          <select id="fontSize"><option value="20">20</option><option value="24">24</option><option value="28" selected>28</option><option value="32">32</option><option value="40">40</option></select>
+        </div>
+        <div class="toolbar-group">
+          <button class="icon-button" type="button" data-command="bold" aria-label="加粗" aria-pressed="false" title="加粗"><svg class="icon" aria-hidden="true"><use href="#i-bold"/></svg></button>
+          <button class="icon-button" type="button" data-command="italic" aria-label="倾斜" aria-pressed="false" title="倾斜"><svg class="icon" aria-hidden="true"><use href="#i-italic"/></svg></button>
+          <button class="icon-button" type="button" data-command="underline" aria-label="下划线" aria-pressed="false" title="下划线"><svg class="icon" aria-hidden="true"><use href="#i-underline"/></svg></button>
+          <label class="color-control" for="textColor" title="文字颜色"><svg class="icon" aria-hidden="true"><use href="#i-type"/></svg><span class="sr-only">文字颜色</span><input id="textColor" type="color" value="#26312c"></label>
+        </div>
+        <div class="toolbar-group paragraph-tools">
+          <button class="tool-button" type="button" data-command="heading" title="标题"><svg class="icon" aria-hidden="true"><use href="#i-heading"/></svg><span>标题</span></button>
+          <button class="tool-button" type="button" data-command="paragraph" title="正文"><svg class="icon" aria-hidden="true"><use href="#i-paragraph"/></svg><span>正文</span></button>
+          <button class="icon-button" type="button" data-command="bullet" aria-label="项目列表" aria-pressed="false" title="项目列表"><svg class="icon" aria-hidden="true"><use href="#i-list"/></svg></button>
+        </div>
+        <button id="findToggle" class="tool-button find-toggle" type="button" data-action="find" aria-controls="findBar" aria-expanded="false"><svg class="icon" aria-hidden="true"><use href="#i-search"/></svg><span>查找与替换</span></button>
+      </div>
+
+      <div id="insertToolbar" class="toolbar insert-toolbar" role="toolbar" aria-label="插入蒙古文字符" hidden>
+        <span class="toolbar-caption">控制字符</span>
+        <button class="character-button" type="button" data-insert="180B" title="插入 U+180B">变体一<span>180B</span></button>
+        <button class="character-button" type="button" data-insert="180C" title="插入 U+180C">变体二<span>180C</span></button>
+        <button class="character-button" type="button" data-insert="180D" title="插入 U+180D">变体三<span>180D</span></button>
+        <button class="character-button" type="button" data-insert="180E" title="插入 U+180E">元音分隔<span>180E</span></button>
+        <button class="character-button" type="button" data-insert="202F" title="插入 U+202F">窄不换行空格<span>202F</span></button>
+        <button class="character-button" type="button" data-insert="200D" title="插入 U+200D">零宽连字<span>200D</span></button>
+        <button class="character-button" type="button" data-insert="200C" title="插入 U+200C">零宽非连字<span>200C</span></button>
+        <span class="toolbar-divider" aria-hidden="true"></span>
+        <button class="character-button" type="button" data-insert="1800" title="插入 U+1800">蒙古文篇首符<span>1800</span></button>
+        <button class="character-button" type="button" data-insert="1801" title="插入 U+1801">蒙古文省略号<span>1801</span></button>
+        <button class="character-button" type="button" data-insert="1802" title="插入 U+1802">蒙古文逗号<span>1802</span></button>
+      </div>
+
+      <div id="layoutToolbar" class="toolbar layout-toolbar" role="toolbar" aria-label="页面布局" hidden>
+        <label class="inline-field" for="pageSize">纸张<select id="pageSize"><option value="A4">A4 横向</option><option value="A3">A3 横向</option></select></label>
+        <label class="inline-field" for="pageMargin">页边距<select id="pageMargin"><option value="32">紧凑 · 32</option><option value="48" selected>标准 · 48</option><option value="64">宽松 · 64</option></select></label>
+        <label class="inline-field" for="lineHeight1">行距<select id="lineHeight1"><option value="1.5">1.5 倍</option><option value="1.8" selected>1.8 倍</option><option value="2.1">2.1 倍</option></select></label>
+        <label class="checkbox-field" for="guides"><input id="guides" type="checkbox"><span>显示版心辅助线</span></label>
+        <span class="layout-hint"><svg class="icon" aria-hidden="true"><use href="#i-vertical"/></svg>竖向书写，向右续行</span>
+      </div>
+    </div>
+
+    <div class="workspace">
+      <aside class="icon-rail" aria-label="工作区导航">
+        <div class="rail-item selected" aria-label="当前工作区：文档" title="文档"><svg class="icon" aria-hidden="true"><use href="#i-document"/></svg></div>
+        <div class="rail-line" aria-hidden="true"></div>
+        <span class="rail-caption">书写空间</span>
+        <div class="rail-bottom" title="文件保存在本地"><svg class="icon" aria-hidden="true"><use href="#i-lock"/></svg></div>
+      </aside>
+
+      <aside class="document-sidebar" aria-label="文档侧栏">
+        <div class="sidebar-heading"><h2>我的文档</h2><span class="count-badge">01</span></div>
+        <p class="section-eyebrow">当前工作区</p>
+        <article class="document-card active" aria-label="当前文档：草原上的文字">
+          <div class="mini-page" aria-hidden="true">
+            <span class="mini-mongolian" lang="mn-Mong">ᠮᠣᠩᠭᠣᠯ ᠪᠢᠴᠢᠭ</span>
+            <span class="mini-mongolian mini-secondary" lang="mn-Mong">ᠲᠠᠯ᠎ᠠ ᠨᠤᠲᠤᠭ</span>
+            <span class="mini-page-number">01</span>
+          </div>
+          <div class="document-card-title"><svg class="icon" aria-hidden="true"><use href="#i-document"/></svg><h3>草原上的文字</h3><span class="status-dot" aria-hidden="true"></span></div>
+          <p>蒙古文文档<span>正在编辑</span></p>
+        </article>
+        <div class="sidebar-note"><span class="note-line" aria-hidden="true"></span><p>从上到下，一笔一行。<br>留一页空间，给自己的文字。</p></div>
+        <div class="local-workspace"><svg class="icon" aria-hidden="true"><use href="#i-lock"/></svg><div><strong>只在此处，安心书写</strong><p>文档由你手动保存到本地</p></div></div>
+      </aside>
+
+      <main class="editor-workspace" aria-label="文档编辑区">
+        <div class="workspace-caption"><div class="workspace-breadcrumb"><svg class="icon" aria-hidden="true"><use href="#i-folder"/></svg><span>本地工作区</span><svg class="icon breadcrumb-chevron" aria-hidden="true"><use href="#i-chevron"/></svg><strong>书写页</strong></div><span class="preview-badge">PREVIEW 0.1</span></div>
+        <div id="encodingToolbar" class="encoding-toolbar" role="group" aria-label="文档编码配置">
+          <span class="encoding-label">编码</span>
+          <div class="encoding-segments">
+            <button class="profile-button active" type="button" data-profile="2023" aria-pressed="true">蒙古文（国标2023）</button>
+            <button class="profile-button" type="button" data-profile="2010" aria-pressed="false">蒙古文（国标2010）</button>
+            <button class="profile-button" type="button" data-profile="menksoft" aria-pressed="false">蒙古文（蒙科立编码）</button>
+          </div>
+        </div>
+
+        <div id="findBar" class="find-bar" role="search" aria-label="查找与替换" hidden>
+          <label class="sr-only" for="findInput">查找文字</label><input id="findInput" type="text" placeholder="查找文字" autocomplete="off">
+          <label class="sr-only" for="replaceInput">替换为</label><input id="replaceInput" type="text" placeholder="替换为" autocomplete="off">
+          <button id="findNext" class="button button-small" type="button">下一处</button>
+          <button id="replaceAll" class="button button-small" type="button">全部替换</button>
+          <span id="findResult" role="status">等待查找</span>
+          <button id="findClose" class="icon-button" type="button" aria-label="关闭查找"><svg class="icon" aria-hidden="true"><use href="#i-close"/></svg></button>
+        </div>
+
+        <div id="canvas" class="paper-viewport" tabindex="0" aria-label="可横向滚动的文档画布">
+          <div class="canvas-content">
+            <div class="paper-caption"><span id="paperLabel">横向书写页 · A4</span><span><span class="tiny-dot" aria-hidden="true"></span>从左向右排布</span></div>
+            <div id="ruler" aria-hidden="true">
+              <svg viewBox="0 0 1000 24" preserveAspectRatio="none"><defs><pattern id="ruler-ticks" width="100" height="24" patternUnits="userSpaceOnUse"><path d="M0 24V10M10 24v-4m10 4v-4m10 4v-4m10 4v-4m10 4V14m10 10v-4m10 4v-4m10 4v-4m10 4v-4"/></pattern></defs><rect width="1000" height="24" fill="url(#ruler-ticks)"/></svg>
+              <div class="ruler-numbers"><span>0</span><span>2</span><span>4</span><span>6</span><span>8</span><span>10</span><span>12</span><span>14</span><span>16</span><span>18</span><span>20</span></div>
+            </div>
+            <section id="paper" aria-label="蒙古文书写纸张"><div id="editor"></div></section>
+            <div class="paper-bottom-caption"><span>竖排蒙古文 · 横向延展</span><span>书写页 01</span></div>
+          </div>
+        </div>
+        <div id="previewNote" class="preview-note"><svg class="icon" aria-hidden="true"><use href="#i-info"/></svg><span>浏览器预览版 · 原生字体管理与系统级功能暂不可用</span></div>
+      </main>
+
+      <aside class="inspector" aria-label="文档属性">
+        <div class="inspector-heading"><h2>文档属性</h2><svg class="icon" aria-hidden="true"><use href="#i-sliders"/></svg></div>
+        <div class="inspector-content">
+          <section class="inspector-section font-section" aria-labelledby="fontHeading">
+            <div class="section-heading"><h3 id="fontHeading">字体与字形</h3><span id="fontCount" class="muted-label">1 款字体</span></div>
+            <label class="sr-only" for="fontFilter">字体范围</label>
+            <select id="fontFilter"><option value="mongolian">蒙古文字体</option><option value="all">全部字体</option><option value="pua">私用区字体</option></select>
+            <div class="font-preview-frame"><span class="font-preview-label">字形预览</span><div id="fontPreview" lang="mn-Mong">ᠮᠣᠩᠭᠣᠯ ᠪᠢᠴᠢᠭ</div><span class="font-preview-corner" aria-hidden="true"></span></div>
+            <p class="field-note">字形效果取决于当前字体与编码。</p>
+          </section>
+          <section class="inspector-section" aria-labelledby="paragraphHeading">
+            <div class="section-heading"><h3 id="paragraphHeading">段落排版</h3><svg class="icon small-icon" aria-hidden="true"><use href="#i-vertical"/></svg></div>
+            <label class="property-field" for="lineHeight"><span>行距</span><select id="lineHeight"><option value="1.5">1.5 倍</option><option value="1.8" selected>1.8 倍</option><option value="2.1">2.1 倍</option></select></label>
+            <label class="property-field" for="alignment"><span>对齐方式</span><select id="alignment"><option value="start">顶端对齐</option><option value="center">居中对齐</option><option value="end">底端对齐</option><option value="justify">两端对齐</option></select></label>
+          </section>
+          <section class="inspector-section" aria-labelledby="encodingHeading">
+            <div class="section-heading"><h3 id="encodingHeading">编码与兼容</h3><span class="status-dot" aria-hidden="true"></span></div>
+            <p id="encodingHint" class="encoding-hint">当前使用国标2023配置。切换配置保留原始字符，不会隐式转换编码。</p>
+            <button id="convertOpen" class="inspector-button" type="button" data-action="convert"><svg class="icon" aria-hidden="true"><use href="#i-convert"/></svg><span>编码转换</span><svg class="icon trailing-icon" aria-hidden="true"><use href="#i-chevron"/></svg></button>
+            <button id="compatOpen" class="inspector-button" type="button" data-action="compatibility"><svg class="icon" aria-hidden="true"><use href="#i-shield"/></svg><span>兼容性检查</span><svg class="icon trailing-icon" aria-hidden="true"><use href="#i-chevron"/></svg></button>
+          </section>
+          <section class="inspector-section statistics-section" aria-labelledby="statisticsHeading">
+            <div class="section-heading"><h3 id="statisticsHeading">文档统计</h3><span class="muted-label">实时</span></div>
+            <dl class="statistics"><div><dt>字符</dt><dd id="charCount">0</dd></div><div><dt>词数</dt><dd id="wordCount">0</dd></div><div><dt>私用区</dt><dd id="puaCount">0</dd></div></dl>
+            <div id="selectionLabel" class="selection-label">选区码点</div>
+            <code id="selectionCodes" aria-labelledby="selectionLabel" aria-live="polite">尚未选择文字</code>
+          </section>
+          <p class="preservation-note"><svg class="icon" aria-hidden="true"><use href="#i-lock"/></svg><span>保留原始字符 · 不做隐式转换</span></p>
+        </div>
+      </aside>
+    </div>
+
+    <footer class="status-bar">
+      <div class="status-left"><svg class="icon" aria-hidden="true"><use href="#i-keyboard"/></svg><span id="compositionStatus" role="status">系统输入法就绪</span><span class="status-divider" aria-hidden="true"></span><span id="encodingStatus">蒙古文（国标2023）</span></div>
+      <div class="status-right"><span id="direction">竖排 · 从左向右</span><span class="status-divider" aria-hidden="true"></span><label for="zoom">缩放</label><select id="zoom"><option value="70">70%</option><option value="85" selected>85%</option><option value="100">100%</option><option value="115">115%</option><option value="130">130%</option></select></div>
+    </footer>
+  </div>
+
+  <input id="fileInput" type="file" accept=".txt,.mglx" hidden>
+  <div id="toast" role="status" aria-live="polite" hidden></div>
+  <dialog id="modal" aria-labelledby="modalTitle"><div class="modal-header"><h2 id="modalTitle">文档工具</h2><button id="modalClose" class="icon-button" type="button" aria-label="关闭对话框"><svg class="icon" aria-hidden="true"><use href="#i-close"/></svg></button></div><div id="modalBody"></div></dialog>
+</body>
+</html>

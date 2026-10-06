@@ -1,0 +1,91 @@
+{
+  "ok": true,
+  "passed": 21,
+  "total": 21,
+  "tests": [
+    {
+      "name": "UTF8 exact control preservation",
+      "pass": true
+    },
+    {
+      "name": "UTF16 LE BOM",
+      "pass": true
+    },
+    {
+      "name": "UTF16 BE BOM",
+      "pass": true
+    },
+    {
+      "name": "Reject invalid UTF8",
+      "pass": true
+    },
+    {
+      "name": "Explicit GB18030 basic character",
+      "pass": true
+    },
+    {
+      "name": "GB18030 Mongolian 4-byte sequence",
+      "pass": true
+    },
+    {
+      "name": "Codepoint stats include supplementary plane",
+      "pass": true
+    },
+    {
+      "name": "PUA is not automatically Menksoft",
+      "pass": true
+    },
+    {
+      "name": "Plaintext paragraph roundtrip",
+      "pass": true
+    },
+    {
+      "name": "Base64 original bytes roundtrip",
+      "pass": true
+    },
+    {
+      "name": "Document valid JSON roundtrip",
+      "pass": true
+    },
+    {
+      "name": "Unsupported document version rejected",
+      "pass": true
+    },
+    {
+      "name": "Unsafe node rejected",
+      "pass": true
+    },
+    {
+      "name": "Color injection sanitized",
+      "pass": true
+    },
+    {
+      "name": "HTML serialization escaping",
+      "pass": true
+    },
+    {
+      "name": "Converter pinned version",
+      "pass": true
+    },
+    {
+      "name": "Menksoft forward and reverse",
+      "pass": true
+    },
+    {
+      "name": "Unsupported converter profile rejected",
+      "pass": true
+    },
+    {
+      "name": "Unknown non-Mongolian characters preserved",
+      "pass": true
+    },
+    {
+      "name": "Independent profiles do not modify text",
+      "pass": true
+    },
+    {
+      "name": "Lossy conversion explicitly flagged",
+      "pass": true
+    }
+  ]
+}

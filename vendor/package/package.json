@@ -1,0 +1,17 @@
+{
+  "name": "mongol-convert-wasm",
+  "type": "module",
+  "description": "WebAssembly binding for mongol-convert: an npm package for the browser, Node, Deno/Bun and edge runtimes.",
+  "version": "0.7.1",
+  "license": "Apache-2.0",
+  "files": [
+    "mongol_convert_bg.wasm",
+    "mongol_convert.js",
+    "mongol_convert.d.ts"
+  ],
+  "main": "mongol_convert.js",
+  "types": "mongol_convert.d.ts",
+  "sideEffects": [
+    "./snippets/*"
+  ]
+}

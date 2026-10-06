@@ -1,0 +1,178 @@
+{
+  "error" : null,
+  "fontFaceCount" : 557,
+  "isolatedDraft" : true,
+  "mongolianFontFaceCount" : 44,
+  "ok" : true,
+  "puaFontFaceCount" : 47,
+  "ready" : true,
+  "result" : {
+    "boundary" : "Smoke tests are not national-standard conformance or vendor IME certification.",
+    "checks" : [
+      {
+        "name" : "vertical-lr writing mode",
+        "pass" : true
+      },
+      {
+        "name" : "left-to-right direction",
+        "pass" : true
+      },
+      {
+        "name" : "fallback font loaded",
+        "pass" : true
+      },
+      {
+        "name" : "converter 0.7.1",
+        "pass" : true
+      },
+      {
+        "name" : "Unicode scalar count",
+        "pass" : true
+      },
+      {
+        "name" : "UTF8 round trip",
+        "pass" : true
+      },
+      {
+        "name" : "UTF16 BOM detection",
+        "pass" : true
+      },
+      {
+        "name" : "invalid UTF8 rejected",
+        "pass" : true
+      },
+      {
+        "name" : "GB18030 decoder basic",
+        "pass" : true
+      },
+      {
+        "name" : "insert control characters intact",
+        "pass" : true
+      },
+      {
+        "name" : "undo restores document",
+        "pass" : true
+      },
+      {
+        "name" : "redo control characters",
+        "pass" : true
+      },
+      {
+        "name" : "document JSON roundtrip",
+        "pass" : true
+      },
+      {
+        "name" : "native isolated draft readback",
+        "pass" : true
+      },
+      {
+        "name" : "native font enumeration",
+        "pass" : true
+      },
+      {
+        "name" : "Menksoft conversion produces PUA",
+        "pass" : true
+      },
+      {
+        "name" : "Menksoft converts back to Mongolian",
+        "pass" : true
+      },
+      {
+        "name" : "unrelated text preserved by converter",
+        "pass" : true
+      },
+      {
+        "name" : "rich formatting",
+        "pass" : true
+      },
+      {
+        "name" : "profile preserves codepoints 2010",
+        "pass" : true
+      },
+      {
+        "name" : "profile preserves codepoints 2023",
+        "pass" : true
+      },
+      {
+        "name" : "profile preserves codepoints menksoft",
+        "pass" : true
+      },
+      {
+        "name" : "lossy conversion produces explicit warning",
+        "pass" : true
+      },
+      {
+        "name" : "search across inline formatting",
+        "pass" : true
+      },
+      {
+        "name" : "find does not steal IME confirmation",
+        "pass" : true
+      },
+      {
+        "name" : "conversion dialog preview",
+        "pass" : true
+      },
+      {
+        "name" : "print font CSS not HTML-escaped",
+        "pass" : true
+      },
+      {
+        "name" : "HTML export embeds fallback font",
+        "pass" : true
+      }
+    ],
+    "conversionExample" : {
+      "privateUse" : "",
+      "result" : "ᠮᠣᠠᠭ᠌ᠨ᠋ᠨ᠋ᠣᠯ",
+      "source" : "ᠮᠣᠩᠭᠣᠯ",
+      "warnings" : [
+
+      ]
+    },
+    "fonts" : [
+      "Heiti SC",
+      "Heiti TC",
+      "Menk Amgalang StdEx Tig",
+      "Menk Budun StdEx Tig",
+      "Menk Doroge StdEx Tig",
+      "Menk Egulen StdEx Tig",
+      "Menk Erihe StdEx Tig",
+      "Menk Garqag StdEx Tig",
+      "Menk Har_a StdEx Tig",
+      "Menk Hawang StdEx Tig",
+      "Menk Hvlvsvn StdEx Tig",
+      "Menk Lhundb StdEx Tig",
+      "Menk Mcdvnbar StdEx Tig",
+      "Menk Narin StdEx Tig",
+      "Menk OnqaHar_a StdEx Tig",
+      "Menk Qagan StdEx Tig",
+      "Menk Qimed StdEx Tig",
+      "Menk Qimig StdEx Tig",
+      "Menk Qingming StdEx Tig",
+      "Menk Scnin StdEx Tig",
+      "Menk Sidam StdEx Tig",
+      "Menk Svgvnag StdEx Tig",
+      "Menk Svlbiya StdEx Tig",
+      "Menk Tegus StdEx Tig",
+      "Menk Tenigun StdEx Tig",
+      "Menk Tvgvrai StdEx Tig",
+      "Menk Ujug StdEx Tig",
+      "Menk Vran StdEx Tig",
+      "Menk Vyangga StdEx Tig",
+      "Menk Xvsiga StdEx Tig",
+      "Menksoft  ",
+      "Menksoft  ",
+      "Menksoft  ",
+      "Menksoft  ",
+      "Menksoft  ",
+      "Songti SC",
+      "Songti TC",
+      "STSong"
+    ],
+    "ok" : true
+  },
+  "snapshot" : "$HOME\/WorkBuddy AI\/1\/outputs\/Mori-Mac-preview.png",
+  "webViewAttached" : true,
+  "windowVisible" : true
+}

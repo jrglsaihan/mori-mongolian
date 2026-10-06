@@ -1,0 +1,10 @@
+# 构建产物与本地文件
+node_modules/
+web/
+tests/core-bundle.cjs
+outputs/
+*.app
+.mori-build.*
+
+# macOS
+.DS_Store

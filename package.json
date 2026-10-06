@@ -1,0 +1,9 @@
+{
+  "name": "mori-mongolian-editor",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Offline macOS vertical Mongolian document editor preview",
+  "scripts": {"build:web": "node build.cjs", "build:mac": "bash native/build.sh", "test": "node tests/core-tests.cjs"},
+  "dependencies": {"prosemirror-model":"1.25.12","prosemirror-state":"1.4.4","prosemirror-view":"1.42.6","prosemirror-commands":"1.7.2","prosemirror-keymap":"1.2.3","prosemirror-history":"1.5.1","prosemirror-schema-list":"1.5.1"},
+  "devDependencies": {"esbuild":"0.28.2"}
+}
