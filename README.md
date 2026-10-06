@@ -2,6 +2,9 @@
 
 面向传统蒙古文的竖排文档编辑器（macOS 预览版）。
 
+[![License: MIT](https://img.shields.io/badge/License-MIT-b9ce9c.svg)](LICENSE)
+[![Platform](https://img.shields.io/badge/platform-macOS%2013%2B-b9ce9c.svg)](#构建)
+
 传统蒙古文书写方向为**从上到下、列从左到右**，因此界面采用横版布局：纸张横向铺开，文字竖向生长。
 
 ![Mori 蒙文书写 运行截图](docs/preview.png)
@@ -127,6 +130,7 @@ native/     Swift 原生外壳、Info.plist、构建脚本
 vendor/     离线转换引擎（WASM）与兜底字体
 tests/      自动化测试与结果证据
 docs/       截图与发布说明
+LICENSE     MIT 许可与第三方许可说明
 build.cjs   web 打包脚本
 ```
 
@@ -147,6 +151,17 @@ build.cjs   web 打包脚本
 - [GB/T 25914-2023](https://std.samr.gov.cn/gb/search/gbDetailed?id=0B4529DE108FFCAFE06397BE0A0A46CC) — 传统蒙古文名义字符、变形显现字符与控制字符使用规则，已替代 2010 版
 - [Unicode 私有使用区说明](https://www.unicode.org/faq/private_use.html)
 - [Unicode Standard §13.5](https://www.unicode.org/versions/Unicode17.0.0/core-spec/chapter-13/) — 蒙古文，含 U+180E 与 U+202F 的演进
+
+## 许可
+
+本项目原创代码采用 **MIT License**，完整文本见 [`LICENSE`](LICENSE)。
+
+这意味着你可以自由使用、修改、分发、商用这份代码，只需保留版权与许可声明。`vendor/` 下的第三方组件遵循各自许可（MIT / Apache-2.0 / OFL 1.1），文本已随代码保留。
+
+需要留意的边界：
+
+- **商业蒙古文字体不在分发范围内。** 本机安装的 Menk / Menksoft 等字体仅由系统在运行时按名称调用，其授权由字体厂商另行约定，本项目不授予任何字体权利。
+- 本项目**未做标准符合性认证**，MIT 也不附带任何担保。用于正式出版或商业排版前，请自行完成字形与分页验收。
 
 ## 路线图
 
