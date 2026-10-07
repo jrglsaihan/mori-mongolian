@@ -1,7 +1,7 @@
 {
   "ok": true,
-  "passed": 21,
-  "total": 21,
+  "passed": 49,
+  "total": 49,
   "tests": [
     {
       "name": "UTF8 exact control preservation",
@@ -85,6 +85,118 @@
     },
     {
       "name": "Lossy conversion explicitly flagged",
+      "pass": true
+    },
+    {
+      "name": "A4 landscape geometry",
+      "pass": true
+    },
+    {
+      "name": "content box subtracts the matching margins",
+      "pass": true
+    },
+    {
+      "name": "A4 portrait geometry",
+      "pass": true
+    },
+    {
+      "name": "A3 landscape geometry",
+      "pass": true
+    },
+    {
+      "name": "page margins clamped to 5..50",
+      "pass": true
+    },
+    {
+      "name": "unknown page size falls back to A4",
+      "pass": true
+    },
+    {
+      "name": "page summary describes orientation",
+      "pass": true
+    },
+    {
+      "name": "legacy string page setting migrates",
+      "pass": true
+    },
+    {
+      "name": "version 2 documents accepted",
+      "pass": true
+    },
+    {
+      "name": "pagination fills pages up to capacity",
+      "pass": true
+    },
+    {
+      "name": "pagination flags oversized blocks",
+      "pass": true
+    },
+    {
+      "name": "pagination accounts for heading weight",
+      "pass": true
+    },
+    {
+      "name": "pagination wraps when weight overflows",
+      "pass": true
+    },
+    {
+      "name": "pagination handles empty document",
+      "pass": true
+    },
+    {
+      "name": "pagination rejects invalid capacity",
+      "pass": true
+    },
+    {
+      "name": "pagination rejects invalid content height",
+      "pass": true
+    },
+    {
+      "name": "schema supports heading levels 1-3",
+      "pass": true
+    },
+    {
+      "name": "heading DOM reflects level",
+      "pass": true
+    },
+    {
+      "name": "textStyle mark carries font and size",
+      "pass": true
+    },
+    {
+      "name": "textStyle DOM quotes family and emits px size",
+      "pass": true
+    },
+    {
+      "name": "font name injection sanitized",
+      "pass": true
+    },
+    {
+      "name": "font size out of range rejected",
+      "pass": true
+    },
+    {
+      "name": "superscript and subscript exclude each other",
+      "pass": true
+    },
+    {
+      "name": "block attributes render inline style",
+      "pass": true
+    },
+    {
+      "name": "block without attributes renders no style",
+      "pass": true
+    },
+    {
+      "name": "cssString quotes plain font names",
+      "pass": true
+    },
+    {
+      "name": "paragraph attrs survive JSON roundtrip",
+      "pass": true
+    },
+    {
+      "name": "mark attrs survive JSON roundtrip",
       "pass": true
     }
   ]

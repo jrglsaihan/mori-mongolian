@@ -13,7 +13,7 @@ Text vertikal wächst.
 
 ![Mori unter macOS](docs/preview.png)
 
-> **Status: lauffähige Entwicklungsvorschau (v0.1.0).**
+> **Status: lauffähige Entwicklungsvorschau (v0.2.0).**
 > Bearbeitung, Systemschriften, Erhalt des Originaltextes und ausdrückliche Kodierungs­umwandlung
 > funktionieren. Das Projekt hat jedoch **keine** vollständige Konformitätsprüfung gegen die chinesischen
 > Nationalstandards für Mongolisch bestanden, und **keine** Unternehmens-Eingabemethode wurde auf echter
@@ -114,12 +114,19 @@ Optionaler nativer Selbsttest (schreibt Bericht und Screenshot):
   --snapshot docs/preview.png
 ```
 
+### Neu in v0.2
+
+- **Schrift und Größe auf Auswahlsebene** — die Schrift- und Größenauswahl ändert jetzt den markierten Text; ohne Auswahl wird der Dokumentstandard geändert. Ein Badge zeigt den aktiven Bereich.
+- **Absatz- und Zeichenformatierung** — Überschriften H1–H3 (⌘0–⌘3), Absatzeinzug, Erstzeileneinzug, Absatzzeilenhöhe, vier Ausrichtungen, hoch- und tiefgestellt.
+- **Seiteneinrichtung und Seitenumbruch** — A4/A3, Quer-/Hochformat, Randvorgaben, schreibgeschützte Umbruchvorschau und paginiertes PDF. Der Umbruch wird durch Messen jedes Blocks berechnet, daher belegen größere Überschriften entsprechend mehr Platz.
+- **DOCX-Import und -Export** über ein lokal installiertes LibreOffice, aufgerufen als **separater Prozess**. Es wird nichts gelinkt oder mitgeliefert, die GPL-3.0-Pflichten von LibreOffice reichen daher nicht auf dieses MIT-Projekt durch. `MORI_SOFFICE` legt einen abweichenden Pfad fest.
+
 ## Prüfergebnisse
 
 | Punkt | Ergebnis |
 | --- | --- |
-| Kerntests | 21 / 21 bestanden |
-| Prüfungen des nativen Editors | 28 / 28 bestanden |
+| Kerntests | 49 / 49 bestanden |
+| Prüfungen des nativen Editors | 56 / 56 bestanden |
 | Aufgelistete Schriftschnitte | 557 |
 | Schriften mit Abdeckung der mongolischen Beispiel-Codepunkte | 44 |
 | Schriften mit Abdeckung der geprüften PUA-Codepunkte | 47 |
@@ -139,10 +146,8 @@ isolierten Sicherungskopie.
   Unternehmens-Eingabemethoden für Mongolisch müssen je Hersteller und Version auf echter Hardware geprüft
   werden. Windows-Eingabemethoden laufen nicht allein deshalb unter macOS, weil ein Kodierungsadapter
   ergänzt wurde.
-- **Word-Funktionen**: Kein DOCX-Austausch, keine Tabellen, keine Änderungsverfolgung, keine Kommentare;
-  derzeit ein einzelnes Dokument auf durchlaufender horizontaler Fläche.
-- **Seitenumbruch und PDF**: Automatischer Umbruch für lange Dokumente fehlt, die Glyphentreue im PDF ist
-  ungeprüft — prüfen Sie die System-Druckvorschau auf Abschneidungen.
+- **Word-Funktionen**: Keine Tabellen, Bilder, Kopf-/Fußzeilen, Seitenzahlen, Fußnoten, Änderungsverfolgung oder Kommentare; der Seitenumbruch ist eine schreibgeschützte Vorschau, keine Bearbeitung direkt auf der Seite.
+- **Seitenumbruch und PDF**: Blockweise gemessener Umbruch und paginierte PDF-Ausgabe sind umgesetzt. Ein Absatz, der länger als eine Seite ist, wird nicht geteilt, sondern erhält eine eigene Seite mit Hinweis auf mögliches Abschneiden. Die Glyphentreue im PDF ist weiterhin ungeprüft.
 - **Zeichensatzumfang**: Die vollständige Umwandlung für Todo, Sibe und Mandschu liegt außerhalb des geprüften Bereichs.
 - **Sicherungskopie**: Es wird nur der letzte Arbeitsbereich aufbewahrt
   (`~/Library/Application Support/Mori/draft.mglx`), keine Versionshistorie.
@@ -205,8 +210,8 @@ Beachtenswerte Grenzen:
 - [ ] Migration der Glyphenkonventionen 2010 ↔ 2023 mit Regressionstests
 - [ ] Vollständige Konformitätsprüfung gegen GB/T 25914-2023
 - [ ] Realhardware-Prüfung für konkrete Unternehmens-Eingabemethoden
-- [ ] Automatischer Seitenumbruch und Glyphentreue im PDF
-- [ ] DOCX-Import und -Export
+- [x] Automatischer Seitenumbruch und Glyphentreue im PDF
+- [x] DOCX-Import und -Export
 - [ ] Versionshistorie für Dokumente
 
 ## Mitwirken

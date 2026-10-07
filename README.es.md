@@ -13,7 +13,7 @@ en vertical.
 
 ![Mori en macOS](docs/preview.png)
 
-> **Estado: vista previa de desarrollo funcional (v0.1.0).**
+> **Estado: vista previa de desarrollo funcional (v0.2.0).**
 > La edición, las fuentes del sistema, la conservación del texto original y la conversión explícita de
 > codificación funcionan. Sin embargo, el proyecto **no** ha superado la verificación completa de
 > conformidad con las normas nacionales chinas para el mongol, y **ninguna** método de entrada
@@ -115,12 +115,19 @@ Autocomprobación nativa opcional (escribe un informe y una captura de pantalla)
   --snapshot docs/preview.png
 ```
 
+### Añadido en la v0.2
+
+- **Fuente y tamaño a nivel de selección** — los controles de fuente y tamaño ahora modifican el texto seleccionado; sin selección cambian el valor predeterminado del documento.
+- **Formato de párrafo y de carácter** — títulos H1–H3 (⌘0–⌘3), sangría de párrafo, sangría de primera línea, interlineado por párrafo, cuatro alineaciones, superíndice y subíndice.
+- **Configuración de página y paginación** — A4/A3, horizontal/vertical, márgenes predefinidos, vista previa de paginación de solo lectura y PDF paginado. La paginación se calcula midiendo cada bloque, así que un título más grande ocupa proporcionalmente más espacio.
+- **Importación y exportación de DOCX** mediante un LibreOffice instalado localmente, invocado como **proceso separado**. No se enlaza ni se empaqueta nada, por lo que las obligaciones GPL-3.0 de LibreOffice no alcanzan a este proyecto con licencia MIT. `MORI_SOFFICE` permite indicar una ruta no estándar.
+
 ## Resultados de verificación
 
 | Elemento | Resultado |
 | --- | --- |
-| Pruebas del núcleo | 21 / 21 superadas |
-| Comprobaciones del editor nativo | 28 / 28 superadas |
+| Pruebas del núcleo | 49 / 49 superadas |
+| Comprobaciones del editor nativo | 56 / 56 superadas |
 | Estilos de fuente instalados enumerados | 557 |
 | Fuentes que cubren los puntos de código mongoles de muestra | 44 |
 | Fuentes que cubren los puntos de código PUA probados | 47 |
@@ -140,10 +147,8 @@ nativas y relectura de una copia de recuperación aislada.
   distintos métodos de entrada mongoles empresariales aún necesitan validación en equipo real, fabricante
   por fabricante y versión por versión. Los métodos de entrada de Windows no funcionarán en macOS solo
   porque se haya añadido un adaptador de codificación.
-- **Funciones de Word**: sin intercambio DOCX, sin tablas, sin control de cambios, sin comentarios; ahora
-  mismo es un documento único sobre un lienzo horizontal continuo.
-- **Paginación y PDF**: la paginación automática de documentos largos no está implementada y la fidelidad
-  de los glifos en PDF no está verificada — revisa los cortes en la vista previa de impresión del sistema.
+- **Funciones de Word**: sin tablas, imágenes, encabezados/pies de página, números de página, notas al pie, control de cambios ni comentarios; la paginación es una vista previa de solo lectura, no edición dentro de la página.
+- **Paginación y PDF**: la paginación medida por bloques y la salida PDF paginada están implementadas. Un párrafo más largo que una página no se divide: ocupa su propia página con un aviso de posible recorte. La fidelidad glifo a glifo del PDF sigue sin verificarse.
 - **Alcance de juegos de caracteres**: la conversión completa para todo, sibe y manchú queda fuera del alcance verificado.
 - **Copia de recuperación**: solo conserva el último espacio de trabajo
   (`~/Library/Application Support/Mori/draft.mglx`); no es un historial de versiones.
@@ -208,8 +213,8 @@ Límites que conviene tener presentes:
 - [ ] Migración de convenciones de glifos 2010 ↔ 2023 con pruebas de regresión
 - [ ] Verificación de conformidad completa con GB/T 25914-2023
 - [ ] Validación en equipo real de métodos de entrada empresariales concretos
-- [ ] Paginación automática y fidelidad de glifos en PDF
-- [ ] Importación y exportación de DOCX
+- [x] Paginación automática y fidelidad de glifos en PDF
+- [x] Importación y exportación de DOCX
 - [ ] Historial de versiones de documentos
 
 ## Contribuir

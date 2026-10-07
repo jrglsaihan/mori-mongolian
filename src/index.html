@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <meta http-equiv="Content-Security-Policy" content="default-src 'self' data: blob:; script-src 'self' 'wasm-unsafe-eval'; style-src 'self' 'unsafe-inline'; font-src 'self' data:; img-src 'self' data: blob:; connect-src 'none'; object-src 'none'; base-uri 'none'">
+  <meta http-equiv="Content-Security-Policy" content="default-src 'self' data: blob:; script-src 'self' 'wasm-unsafe-eval'; style-src 'self' 'unsafe-inline'; font-src 'self' data:; img-src 'self' data: blob:; frame-src 'self' data: blob: about:; connect-src 'none'; object-src 'none'; base-uri 'none'">
   <meta name="theme-color" content="#14191b">
   <title>Mori / 蒙文书写</title>
   <link rel="stylesheet" href="styles.css">
@@ -23,13 +23,15 @@
       <symbol id="i-bold" viewBox="0 0 24 24"><path d="M7 4h6a4 4 0 0 1 0 8H7Zm0 8h7a4 4 0 0 1 0 8H7Z"/></symbol>
       <symbol id="i-italic" viewBox="0 0 24 24"><path d="M10 4h9M5 20h9M15 4 9 20"/></symbol>
       <symbol id="i-underline" viewBox="0 0 24 24"><path d="M6 3v7a6 6 0 0 0 12 0V3M4 21h16"/></symbol>
-      <symbol id="i-heading" viewBox="0 0 24 24"><path d="M5 4v16M17 4v16M5 12h12"/></symbol>
-      <symbol id="i-paragraph" viewBox="0 0 24 24"><path d="M12 4H9a5 5 0 0 0 0 10h3M12 4v16M17 4v16M8 4h12"/></symbol>
+      <symbol id="i-sup" viewBox="0 0 24 24"><path d="M4 18h7M4 6h7M4 6v12M17 4l4 3-4 3"/></symbol>
+      <symbol id="i-sub" viewBox="0 0 24 24"><path d="M4 18h7M4 6h7M4 6v12M17 15l4 3-4 3"/></symbol>
+      <symbol id="i-indent-more" viewBox="0 0 24 24"><path d="M3 6h18M3 18h18M7 12h11M10 9l-3 3 3 3"/></symbol>
+      <symbol id="i-indent-less" viewBox="0 0 24 24"><path d="M3 6h18M3 18h18M7 12h11M18 9l3 3-3 3"/></symbol>
+      <symbol id="i-firstline" viewBox="0 0 24 24"><path d="M4 6h16M8 12h12M8 18h12"/></symbol>
       <symbol id="i-list" viewBox="0 0 24 24"><path d="M9 6h12M9 12h12M9 18h12M3 6h.01M3 12h.01M3 18h.01"/></symbol>
       <symbol id="i-search" viewBox="0 0 24 24"><circle cx="10.5" cy="10.5" r="6.5"/><path d="m16 16 5 5"/></symbol>
       <symbol id="i-close" viewBox="0 0 24 24"><path d="m6 6 12 12M6 18 18 6"/></symbol>
       <symbol id="i-chevron" viewBox="0 0 24 24"><path d="m9 5 7 7-7 7"/></symbol>
-      <symbol id="i-check" viewBox="0 0 24 24"><path d="m5 12 4 4L19 6"/></symbol>
       <symbol id="i-sliders" viewBox="0 0 24 24"><path d="M4 7h7m4 0h5M4 17h3m4 0h9"/><circle cx="13" cy="7" r="2"/><circle cx="9" cy="17" r="2"/></symbol>
       <symbol id="i-type" viewBox="0 0 24 24"><path d="M4 7V4h16v3M12 4v16M8 20h8"/></symbol>
       <symbol id="i-convert" viewBox="0 0 24 24"><path d="M4 7h16m-4-4 4 4-4 4M20 17H4m4-4-4 4 4 4"/></symbol>
@@ -38,6 +40,8 @@
       <symbol id="i-vertical" viewBox="0 0 24 24"><path d="M5 4v16m-3-3 3 3 3-3M12 4v12M17 4v12M11 21h10m-3-3 3 3-3 3"/></symbol>
       <symbol id="i-keyboard" viewBox="0 0 24 24"><rect x="2" y="5" width="20" height="14" rx="3"/><path d="M6 9h.01M10 9h.01M14 9h.01M18 9h.01M6 12h.01M10 12h.01M14 12h.01M18 12h.01M7 16h10"/></symbol>
       <symbol id="i-lock" viewBox="0 0 24 24"><rect x="5" y="10" width="14" height="11" rx="2"/><path d="M8 10V7a4 4 0 0 1 8 0v3M12 14v3"/></symbol>
+      <symbol id="i-pages" viewBox="0 0 24 24"><rect x="3" y="4" width="8" height="16" rx="1"/><rect x="13" y="4" width="8" height="16" rx="1"/></symbol>
+      <symbol id="i-docx" viewBox="0 0 24 24"><path d="M14 3H6a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V9Z"/><path d="M14 3v6h6M8 13l1.5 5L11 14l1.5 4L14 13"/></symbol>
     </defs>
   </svg>
 
@@ -56,6 +60,7 @@
         </div>
       </div>
       <div class="header-actions">
+        <button class="button button-quiet" type="button" data-action="pagePreview"><svg class="icon" aria-hidden="true"><use href="#i-pages"/></svg><span>分页预览</span></button>
         <button class="button button-quiet" type="button" data-action="print"><svg class="icon" aria-hidden="true"><use href="#i-print"/></svg><span>打印 / PDF</span></button>
         <button id="saveButton" class="button button-primary" type="button" data-action="save"><svg class="icon" aria-hidden="true"><use href="#i-save"/></svg><span>保存</span></button>
       </div>
@@ -72,30 +77,38 @@
         <button class="tab" type="button" data-tab="layout">页面布局</button>
         <button class="tab" type="button" data-tab="encoding">编码工具</button>
       </nav>
-      <button id="exportButton" class="text-button export-button" type="button" data-action="exportText"><svg class="icon" aria-hidden="true"><use href="#i-export"/></svg>导出文本</button>
+      <button id="exportButton" class="text-button export-button" type="button" data-action="exportText"><svg class="icon" aria-hidden="true"><use href="#i-export"/></svg>导出</button>
     </div>
 
     <div class="formatting-row">
-      <div id="homeToolbar" class="toolbar" role="toolbar" aria-label="文字格式">
+      <div id="homeToolbar" class="toolbar" role="toolbar" aria-label="文字与段落格式">
         <div class="toolbar-group history-tools">
-          <button class="icon-button" type="button" data-command="undo" aria-label="撤销" title="撤销"><svg class="icon" aria-hidden="true"><use href="#i-undo"/></svg></button>
-          <button class="icon-button" type="button" data-command="redo" aria-label="重做" title="重做"><svg class="icon" aria-hidden="true"><use href="#i-redo"/></svg></button>
+          <button class="icon-button" type="button" data-command="undo" aria-label="撤销" title="撤销 ⌘Z"><svg class="icon" aria-hidden="true"><use href="#i-undo"/></svg></button>
+          <button class="icon-button" type="button" data-command="redo" aria-label="重做" title="重做 ⇧⌘Z"><svg class="icon" aria-hidden="true"><use href="#i-redo"/></svg></button>
         </div>
         <div class="toolbar-group font-tools">
+          <span id="styleScope" class="scope-badge" title="字体与字号的作用范围">文档默认</span>
           <label class="sr-only" for="fontSelect">字体</label>
-          <select id="fontSelect"><option value="Mori Noto">诺托蒙古文字体</option></select>
+          <select id="fontSelect" title="字体：有选区时应用到选区，无选区时修改文档默认"><option value="Mori Noto">诺托蒙古文字体</option></select>
           <label class="sr-only" for="fontSize">字号</label>
-          <select id="fontSize"><option value="20">20</option><option value="24">24</option><option value="28" selected>28</option><option value="32">32</option><option value="40">40</option></select>
+          <select id="fontSize" title="字号：有选区时应用到选区，无选区时修改文档默认"><option>16</option><option>20</option><option>24</option><option selected>28</option><option>32</option><option>40</option><option>48</option></select>
         </div>
         <div class="toolbar-group">
-          <button class="icon-button" type="button" data-command="bold" aria-label="加粗" aria-pressed="false" title="加粗"><svg class="icon" aria-hidden="true"><use href="#i-bold"/></svg></button>
-          <button class="icon-button" type="button" data-command="italic" aria-label="倾斜" aria-pressed="false" title="倾斜"><svg class="icon" aria-hidden="true"><use href="#i-italic"/></svg></button>
-          <button class="icon-button" type="button" data-command="underline" aria-label="下划线" aria-pressed="false" title="下划线"><svg class="icon" aria-hidden="true"><use href="#i-underline"/></svg></button>
+          <button class="icon-button" type="button" data-command="bold" aria-label="加粗" aria-pressed="false" title="加粗 ⌘B"><svg class="icon" aria-hidden="true"><use href="#i-bold"/></svg></button>
+          <button class="icon-button" type="button" data-command="italic" aria-label="倾斜" aria-pressed="false" title="倾斜 ⌘I"><svg class="icon" aria-hidden="true"><use href="#i-italic"/></svg></button>
+          <button class="icon-button" type="button" data-command="underline" aria-label="下划线" aria-pressed="false" title="下划线 ⌘U"><svg class="icon" aria-hidden="true"><use href="#i-underline"/></svg></button>
+          <button class="icon-button" type="button" data-command="sup" aria-label="上标" aria-pressed="false" title="上标 ⌘."><svg class="icon" aria-hidden="true"><use href="#i-sup"/></svg></button>
+          <button class="icon-button" type="button" data-command="sub" aria-label="下标" aria-pressed="false" title="下标 ⌘,"><svg class="icon" aria-hidden="true"><use href="#i-sub"/></svg></button>
           <label class="color-control" for="textColor" title="文字颜色"><svg class="icon" aria-hidden="true"><use href="#i-type"/></svg><span class="sr-only">文字颜色</span><input id="textColor" type="color" value="#26312c"></label>
         </div>
         <div class="toolbar-group paragraph-tools">
-          <button class="tool-button" type="button" data-command="heading" title="标题"><svg class="icon" aria-hidden="true"><use href="#i-heading"/></svg><span>标题</span></button>
-          <button class="tool-button" type="button" data-command="paragraph" title="正文"><svg class="icon" aria-hidden="true"><use href="#i-paragraph"/></svg><span>正文</span></button>
+          <label class="sr-only" for="headingSelect">段落级别</label>
+          <select id="headingSelect" title="段落级别（⌘0 正文，⌘1/2/3 标题）"><option value="0">正文</option><option value="1">标题 1</option><option value="2">标题 2</option><option value="3">标题 3</option></select>
+          <label class="sr-only" for="alignSelect">对齐</label>
+          <select id="alignSelect" title="段落对齐"><option value="start">顶端对齐</option><option value="center">居中</option><option value="end">底端对齐</option><option value="justify">两端对齐</option></select>
+          <button class="icon-button" type="button" data-command="indentOut" aria-label="减少缩进" title="减少缩进"><svg class="icon" aria-hidden="true"><use href="#i-indent-less"/></svg></button>
+          <button class="icon-button" type="button" data-command="indentIn" aria-label="增加缩进" title="增加缩进"><svg class="icon" aria-hidden="true"><use href="#i-indent-more"/></svg></button>
+          <button class="icon-button" type="button" data-command="firstLine" aria-label="首行缩进" title="首行缩进（2 em 切换）"><svg class="icon" aria-hidden="true"><use href="#i-firstline"/></svg></button>
           <button class="icon-button" type="button" data-command="bullet" aria-label="项目列表" aria-pressed="false" title="项目列表"><svg class="icon" aria-hidden="true"><use href="#i-list"/></svg></button>
         </div>
         <button id="findToggle" class="tool-button find-toggle" type="button" data-action="find" aria-controls="findBar" aria-expanded="false"><svg class="icon" aria-hidden="true"><use href="#i-search"/></svg><span>查找与替换</span></button>
@@ -117,11 +130,16 @@
       </div>
 
       <div id="layoutToolbar" class="toolbar layout-toolbar" role="toolbar" aria-label="页面布局" hidden>
-        <label class="inline-field" for="pageSize">纸张<select id="pageSize"><option value="A4">A4 横向</option><option value="A3">A3 横向</option></select></label>
-        <label class="inline-field" for="pageMargin">页边距<select id="pageMargin"><option value="32">紧凑 · 32</option><option value="48" selected>标准 · 48</option><option value="64">宽松 · 64</option></select></label>
-        <label class="inline-field" for="lineHeight1">行距<select id="lineHeight1"><option value="1.5">1.5 倍</option><option value="1.8" selected>1.8 倍</option><option value="2.1">2.1 倍</option></select></label>
+        <label class="inline-field" for="pageSize">纸张<select id="pageSize"><option value="A4">A4</option><option value="A3">A3</option></select></label>
+        <label class="inline-field" for="pageOrientation">方向<select id="pageOrientation"><option value="landscape">横向</option><option value="portrait">纵向</option></select></label>
+        <label class="inline-field" for="pageMarginPreset">页边距<select id="pageMarginPreset"><option value="12">窄 · 12mm</option><option value="20" selected>标准 · 20mm</option><option value="30">宽 · 30mm</option><option value="custom">自定义</option></select></label>
+        <span class="layout-hint" id="pageInfo">A4 横向</span>
+        <button class="tool-button" type="button" data-action="pagePreview"><svg class="icon" aria-hidden="true"><use href="#i-pages"/></svg><span>分页预览</span></button>
+        <span class="toolbar-divider" aria-hidden="true"></span>
+        <button class="tool-button" type="button" data-action="importDOCX"><svg class="icon" aria-hidden="true"><use href="#i-docx"/></svg><span>导入 DOCX</span></button>
+        <button class="tool-button" type="button" data-action="exportDOCX"><svg class="icon" aria-hidden="true"><use href="#i-export"/></svg><span>导出 DOCX</span></button>
+        <span id="docxState" class="docx-state">检测中…</span>
         <label class="checkbox-field" for="guides"><input id="guides" type="checkbox"><span>显示版心辅助线</span></label>
-        <span class="layout-hint"><svg class="icon" aria-hidden="true"><use href="#i-vertical"/></svg>竖向书写，向右续行</span>
       </div>
     </div>
 
@@ -136,7 +154,7 @@
       <aside class="document-sidebar" aria-label="文档侧栏">
         <div class="sidebar-heading"><h2>我的文档</h2><span class="count-badge">01</span></div>
         <p class="section-eyebrow">当前工作区</p>
-        <article class="document-card active" aria-label="当前文档：草原上的文字">
+        <article class="document-card active" aria-label="当前文档">
           <div class="mini-page" aria-hidden="true">
             <span class="mini-mongolian" lang="mn-Mong">ᠮᠣᠩᠭᠣᠯ ᠪᠢᠴᠢᠭ</span>
             <span class="mini-mongolian mini-secondary" lang="mn-Mong">ᠲᠠᠯ᠎ᠠ ᠨᠤᠲᠤᠭ</span>
@@ -150,7 +168,7 @@
       </aside>
 
       <main class="editor-workspace" aria-label="文档编辑区">
-        <div class="workspace-caption"><div class="workspace-breadcrumb"><svg class="icon" aria-hidden="true"><use href="#i-folder"/></svg><span>本地工作区</span><svg class="icon breadcrumb-chevron" aria-hidden="true"><use href="#i-chevron"/></svg><strong>书写页</strong></div><span class="preview-badge">PREVIEW 0.1</span></div>
+        <div class="workspace-caption"><div class="workspace-breadcrumb"><svg class="icon" aria-hidden="true"><use href="#i-folder"/></svg><span>本地工作区</span><svg class="icon breadcrumb-chevron" aria-hidden="true"><use href="#i-chevron"/></svg><strong>书写页</strong></div><span class="preview-badge">PREVIEW 0.2</span></div>
         <div id="encodingToolbar" class="encoding-toolbar" role="group" aria-label="文档编码配置">
           <span class="encoding-label">编码</span>
           <div class="encoding-segments">
@@ -171,16 +189,16 @@
 
         <div id="canvas" class="paper-viewport" tabindex="0" aria-label="可横向滚动的文档画布">
           <div class="canvas-content">
-            <div class="paper-caption"><span id="paperLabel">横向书写页 · A4</span><span><span class="tiny-dot" aria-hidden="true"></span>从左向右排布</span></div>
+            <div class="paper-caption"><span id="paperLabel">横向连续画布 · A4 横向</span><span><span class="tiny-dot" aria-hidden="true"></span>从左向右排布</span></div>
             <div id="ruler" aria-hidden="true">
               <svg viewBox="0 0 1000 24" preserveAspectRatio="none"><defs><pattern id="ruler-ticks" width="100" height="24" patternUnits="userSpaceOnUse"><path d="M0 24V10M10 24v-4m10 4v-4m10 4v-4m10 4v-4m10 4V14m10 10v-4m10 4v-4m10 4v-4m10 4v-4"/></pattern></defs><rect width="1000" height="24" fill="url(#ruler-ticks)"/></svg>
               <div class="ruler-numbers"><span>0</span><span>2</span><span>4</span><span>6</span><span>8</span><span>10</span><span>12</span><span>14</span><span>16</span><span>18</span><span>20</span></div>
             </div>
             <section id="paper" aria-label="蒙古文书写纸张"><div id="editor"></div></section>
-            <div class="paper-bottom-caption"><span>竖排蒙古文 · 横向延展</span><span>书写页 01</span></div>
+            <div class="paper-bottom-caption"><span>竖排蒙古文 · 横向延展</span><span id="blockKind">正文</span></div>
           </div>
         </div>
-        <div id="previewNote" class="preview-note"><svg class="icon" aria-hidden="true"><use href="#i-info"/></svg><span>浏览器预览版 · 原生字体管理与系统级功能暂不可用</span></div>
+        <div id="previewNote" class="preview-note"><svg class="icon" aria-hidden="true"><use href="#i-info"/></svg><span>浏览器预览版 · 原生字体管理、分页输出与 DOCX 转换暂不可用</span></div>
       </main>
 
       <aside class="inspector" aria-label="文档属性">
@@ -195,8 +213,16 @@
           </section>
           <section class="inspector-section" aria-labelledby="paragraphHeading">
             <div class="section-heading"><h3 id="paragraphHeading">段落排版</h3><svg class="icon small-icon" aria-hidden="true"><use href="#i-vertical"/></svg></div>
-            <label class="property-field" for="lineHeight"><span>行距</span><select id="lineHeight"><option value="1.5">1.5 倍</option><option value="1.8" selected>1.8 倍</option><option value="2.1">2.1 倍</option></select></label>
-            <label class="property-field" for="alignment"><span>对齐方式</span><select id="alignment"><option value="start">顶端对齐</option><option value="center">居中对齐</option><option value="end">底端对齐</option><option value="justify">两端对齐</option></select></label>
+            <label class="property-field" for="lineHeight"><span>段落行距</span><select id="lineHeight"><option value="1.4">1.4 倍</option><option value="1.6">1.6 倍</option><option value="1.8">1.8 倍</option><option value="2.1">2.1 倍</option></select></label>
+            <div class="property-field"><span>缩进</span><output id="indentValue">0 em</output></div>
+            <p class="field-note">行距与缩进作用于当前段落或选区覆盖的段落。选择「文档默认值」会清除段落级覆盖。</p>
+          </section>
+          <section class="inspector-section" aria-labelledby="pageHeading">
+            <div class="section-heading"><h3 id="pageHeading">页面设置</h3><span class="muted-label">分页</span></div>
+            <p id="pageInfoText" class="encoding-hint">纸张、方向与页边距在「页面布局」标签中调整。分页预览为只读排版结果。</p>
+            <button id="pagePreviewOpen" class="inspector-button" type="button" data-action="pagePreview"><svg class="icon" aria-hidden="true"><use href="#i-pages"/></svg><span>分页预览</span><svg class="icon trailing-icon" aria-hidden="true"><use href="#i-chevron"/></svg></button>
+            <button id="docxImportOpen" class="inspector-button" type="button" data-action="importDOCX"><svg class="icon" aria-hidden="true"><use href="#i-docx"/></svg><span>导入 DOCX</span><svg class="icon trailing-icon" aria-hidden="true"><use href="#i-chevron"/></svg></button>
+            <button id="docxExportOpen" class="inspector-button" type="button" data-action="exportDOCX"><svg class="icon" aria-hidden="true"><use href="#i-export"/></svg><span>导出 DOCX</span><svg class="icon trailing-icon" aria-hidden="true"><use href="#i-chevron"/></svg></button>
           </section>
           <section class="inspector-section" aria-labelledby="encodingHeading">
             <div class="section-heading"><h3 id="encodingHeading">编码与兼容</h3><span class="status-dot" aria-hidden="true"></span></div>

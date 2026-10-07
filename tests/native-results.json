@@ -46,27 +46,111 @@
         "pass" : true
       },
       {
-        "name" : "insert control characters intact",
+        "name" : "A4 landscape geometry",
         "pass" : true
       },
       {
-        "name" : "undo restores document",
+        "name" : "portrait swaps axes",
         "pass" : true
       },
       {
-        "name" : "redo control characters",
+        "name" : "page margin clamped",
         "pass" : true
       },
       {
-        "name" : "document JSON roundtrip",
+        "name" : "unknown page size falls back",
         "pass" : true
       },
       {
-        "name" : "native isolated draft readback",
+        "name" : "selection font mark applied",
         "pass" : true
       },
       {
-        "name" : "native font enumeration",
+        "name" : "selection size mark applied",
+        "pass" : true
+      },
+      {
+        "name" : "textStyle mark rendered inline",
+        "pass" : true
+      },
+      {
+        "name" : "style scope shows selection",
+        "pass" : true
+      },
+      {
+        "name" : "style scope shows document default",
+        "pass" : true
+      },
+      {
+        "name" : "heading level 2 applied",
+        "pass" : true
+      },
+      {
+        "name" : "paragraph indent applied",
+        "pass" : true
+      },
+      {
+        "name" : "indent rendered as margin",
+        "pass" : true
+      },
+      {
+        "name" : "paragraph alignment applied",
+        "pass" : true
+      },
+      {
+        "name" : "superscript mark applied",
+        "pass" : true
+      },
+      {
+        "name" : "subscript replaces superscript",
+        "pass" : true
+      },
+      {
+        "name" : "pagination produces pages",
+        "pass" : true
+      },
+      {
+        "name" : "pagination covers every block",
+        "pass" : true
+      },
+      {
+        "name" : "pagination respects capacity",
+        "pass" : true
+      },
+      {
+        "name" : "pagination measures block lengths",
+        "pass" : true
+      },
+      {
+        "name" : "pagination keeps normal paragraphs on shared pages",
+        "pass" : true
+      },
+      {
+        "name" : "pagination has no false overflow",
+        "pass" : true
+      },
+      {
+        "name" : "paginated HTML has one page div per page",
+        "pass" : true
+      },
+      {
+        "name" : "paginated HTML uses @page size",
+        "pass" : true
+      },
+      {
+        "name" : "paginated HTML uses vertical writing",
+        "pass" : true
+      },
+      {
+        "name" : "paginated HTML embeds page numbers",
+        "pass" : true
+      },
+      {
+        "name" : "paginated HTML embeds fallback font",
+        "pass" : true
+      },
+      {
+        "name" : "print CSS font not HTML-escaped",
         "pass" : true
       },
       {
@@ -82,7 +166,7 @@
         "pass" : true
       },
       {
-        "name" : "rich formatting",
+        "name" : "lossy conversion produces explicit warning",
         "pass" : true
       },
       {
@@ -98,10 +182,6 @@
         "pass" : true
       },
       {
-        "name" : "lossy conversion produces explicit warning",
-        "pass" : true
-      },
-      {
         "name" : "search across inline formatting",
         "pass" : true
       },
@@ -114,11 +194,43 @@
         "pass" : true
       },
       {
-        "name" : "print font CSS not HTML-escaped",
+        "name" : "docx availability reported",
         "pass" : true
       },
       {
-        "name" : "HTML export embeds fallback font",
+        "name" : "page preview opens with rendered pages",
+        "pass" : true
+      },
+      {
+        "name" : "page preview shows page numbers",
+        "pass" : true
+      },
+      {
+        "name" : "page preview uses vertical writing",
+        "pass" : true
+      },
+      {
+        "name" : "page preview applies page size",
+        "pass" : true
+      },
+      {
+        "name" : "preview iframe document reachable",
+        "pass" : true
+      },
+      {
+        "name" : "preview pages contain text",
+        "pass" : true
+      },
+      {
+        "name" : "preview page body has vertical layout",
+        "pass" : true
+      },
+      {
+        "name" : "preview page body has non-zero extent",
+        "pass" : true
+      },
+      {
+        "name" : "preview blocks are laid out inside the page",
         "pass" : true
       }
     ],
@@ -130,6 +242,8 @@
 
       ]
     },
+    "docxAvailable" : false,
+    "docxProbe" : null,
     "fonts" : [
       "Heiti SC",
       "Heiti TC",
@@ -170,7 +284,61 @@
       "Songti TC",
       "STSong"
     ],
-    "ok" : true
+    "ok" : true,
+    "pageExample" : {
+      "basePitch" : 50.399999999999999,
+      "blocks" : 40,
+      "capacity" : 19,
+      "contentHeightPx" : 643,
+      "overflow" : 0,
+      "sample" : [
+        {
+          "length" : 851,
+          "weight" : 1.3200000000000001
+        },
+        {
+          "length" : 851,
+          "weight" : 1.3200000000000001
+        },
+        {
+          "length" : 851,
+          "weight" : 1.3200000000000001
+        }
+      ],
+      "summary" : "A4 横向 · 版心 257×170 mm",
+      "totalPages" : 6
+    },
+    "previewDiagnostics" : {
+      "bodyHTMLLength" : 1339,
+      "bodyRect" : {
+        "h" : 643,
+        "w" : 971
+      },
+      "firstBlock" : {
+        "h" : 643,
+        "tag" : "P",
+        "w" : 50
+      },
+      "fontsReady" : "loaded",
+      "iframeURL" : "about:srcdoc",
+      "pages" : 2,
+      "probes" : {
+        "plain" : {
+          "ready" : "complete",
+          "text" : "hello",
+          "url" : "about:srcdoc"
+        },
+        "sandboxed" : {
+          "ready" : "complete",
+          "text" : "hello",
+          "url" : "about:srcdoc"
+        }
+      },
+      "readyState" : "complete",
+      "rootChildren" : 2,
+      "srcdocLength" : 2696
+    },
+    "previewPages" : 2
   },
   "snapshot" : "$HOME\/WorkBuddy AI\/1\/outputs\/Mori-Mac-preview.png",
   "webViewAttached" : true,

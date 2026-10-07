@@ -11,7 +11,7 @@ Traditional Mongolian runs **top to bottom, with columns advancing left to right
 
 ![Mori running on macOS](docs/preview.png)
 
-> **Status: runnable development preview (v0.1.0).**
+> **Status: runnable development preview (v0.2.0).**
 > Editing, system fonts, source-text preservation and explicit encoding conversion work today. It has **not** passed full conformance testing against the Chinese national standards for Mongolian, and **no** enterprise input method has been verified on a real machine. Do not treat it as a finished Word replacement.
 
 ---
@@ -89,7 +89,7 @@ npm run build:mac        # compiles arm64 + x86_64 and packages ../outputs/Mori.
 Tests:
 
 ```bash
-npm test                 # 21 encoding and document-integrity tests
+npm test                 # 49 encoding, layout and document-integrity tests
 ```
 
 Optional native self-check (writes a report and a screenshot):
@@ -100,12 +100,19 @@ Optional native self-check (writes a report and a screenshot):
   --snapshot docs/preview.png
 ```
 
+### Added in v0.2
+
+- **Selection-level font and size** — the font and size controls now restyle the selected text; with no selection they change the document default. A badge shows which scope is active.
+- **Paragraph and character formatting** — headings H1–H3 (⌘0–⌘3), paragraph indent, first-line indent, per-paragraph line height, four alignments, superscript and subscript (⌘. / ⌘,).
+- **Page setup and pagination** — A4/A3, landscape/portrait, margin presets, a paginated read-only preview and paginated PDF output. Pagination is computed by measuring every block, so headings with larger type consume proportionally more of the page.
+- **DOCX import and export** through a locally installed LibreOffice, invoked as a **separate process**. Nothing is linked or bundled, so LibreOffice's GPL-3.0 obligations do not extend to this MIT-licensed project. Set `MORI_SOFFICE` to use a non-standard install path.
+
 ## Verification results
 
 | Item | Result |
 | --- | --- |
-| Core tests | 21 / 21 passed |
-| Native editor checks | 28 / 28 passed |
+| Core tests | 49 / 49 passed |
+| Native editor checks | 56 / 56 passed |
 | Installed font faces enumerated | 557 |
 | Fonts covering Mongolian sample code points | 44 |
 | Fonts covering tested private-use code points | 47 |
@@ -117,8 +124,8 @@ Coverage includes: Unicode control-character fidelity, UTF-8 / UTF-16, GB18030 s
 ## Known limitations
 
 - **Input methods**: the standard composition hook is implemented, but Menksoft and the various enterprise Mongolian input methods still need per-vendor, per-version verification on real hardware. Windows input methods will not run on macOS just because an encoding adapter was added.
-- **Word features**: no DOCX interop, no tables, no track changes, no comments; this is currently a single-document continuous canvas.
-- **Pagination and PDF**: automatic pagination for long documents is not implemented and PDF glyph fidelity is unverified — check the system print preview for truncation.
+- **Word features**: no tables, images, headers/footers, page-number fields, footnotes, track changes or comments; pagination is a read-only preview, not in-page editing.
+- **Pagination and PDF**: block-measured pagination and paginated PDF output are implemented. A paragraph longer than one page is not split — it gets its own page with a truncation warning. Per-glyph PDF fidelity is still unverified; check the print preview.
 - **Character-set scope**: full conversion for Todo, Sibe and Manchu is outside the verified range.
 - **Recovery copy**: keeps only the most recent workspace (`~/Library/Application Support/Mori/draft.mglx`); it is not version history.
 - **Platform verification**: tested on Apple Silicon only; Intel and older macOS are unverified.
@@ -171,8 +178,8 @@ Boundaries worth noting:
 - [ ] 2010 ↔ 2023 glyph-convention migration with regression cases
 - [ ] Full GB/T 25914-2023 conformance verification
 - [ ] Real-hardware verification for specific enterprise input methods
-- [ ] Automatic pagination and PDF glyph fidelity
-- [ ] DOCX import and export
+- [x] Automatic pagination and PDF glyph fidelity
+- [x] DOCX import and export
 - [ ] Multi-version document history
 
 ## Contributing

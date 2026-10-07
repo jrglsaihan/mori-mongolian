@@ -229,8 +229,12 @@ svg { display: block; }
 #editor .ProseMirror h4,
 #editor .ProseMirror h5,
 #editor .ProseMirror h6 { margin: 0 0 0 18px; font: inherit; }
-#editor .ProseMirror h1 { font-size: 48px; }
-#editor .ProseMirror h2 { font-size: 32px; }
+#editor .ProseMirror h1 { font-size: calc(var(--doc-size) * 1.7); }
+#editor .ProseMirror h2 { font-size: calc(var(--doc-size) * 1.35); }
+#editor .ProseMirror h3 { font-size: calc(var(--doc-size) * 1.12); }
+#editor .ProseMirror sup { font-size: .72em; vertical-align: super; line-height: 0; }
+#editor .ProseMirror sub { font-size: .72em; vertical-align: sub; line-height: 0; }
+#editor .ProseMirror h1, #editor .ProseMirror h2, #editor .ProseMirror h3 { font-weight: 600; }
 #editor .ProseMirror strong { font-weight: 700; }
 #editor .ProseMirror em { font-style: italic; }
 #editor .ProseMirror ul, #editor .ProseMirror ol { margin: 0 0 0 18px; padding-inline-start: 1.3em; }
@@ -313,6 +317,15 @@ svg { display: block; }
 .conversion-fields, .compat-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
 .warning { padding: 12px; border: 1px solid #756744; color: #e5d5a8; background: #302c22; border-radius: 6px; }
 button:disabled { opacity: .4; cursor: not-allowed; }
+.scope-badge { display: inline-flex; align-items: center; height: 22px; padding: 0 8px; border: 1px solid #45523c; border-radius: 11px; color: #9fae98; font-size: 10px; white-space: nowrap; }
+.scope-badge.scoped { border-color: #7d955e; background: #2c3a25; color: #d3e6bd; }
+.docx-state { color: #87977c; font-size: 10px; white-space: nowrap; }
+.docx-state.available { color: #a9d18e; }
+.preview-frame { width: 100%; height: min(66vh, 620px); margin: 12px 0; border: 1px solid #47543e; border-radius: 8px; overflow: hidden; background: #5a6357; }
+.preview-frame iframe { display: block; width: 100%; height: 100%; border: 0; }
+#modalBody .property-field output { color: #c4d6b1; font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: 11px; }
+.inline-field { display: inline-flex; align-items: center; gap: 7px; color: #aebba4; font-size: 11px; white-space: nowrap; }
+.inline-field select { height: 30px; font-size: 11px; }
 
 @media (min-width: 1700px) {
   .canvas-content { padding-left: 52px; padding-right: 52px; }

@@ -13,7 +13,7 @@ verticalement.
 
 ![Mori sous macOS](docs/preview.png)
 
-> **État : aperçu de développement fonctionnel (v0.1.0).**
+> **État : aperçu de développement fonctionnel (v0.2.0).**
 > L'édition, les polices système, la préservation du texte d'origine et la conversion explicite
 > d'encodage fonctionnent. En revanche, le projet **n'a pas** passé la vérification de conformité
 > complète aux normes nationales chinoises pour le mongol, et **aucune** méthode de saisie
@@ -117,12 +117,19 @@ Auto-contrôle natif facultatif (écrit un rapport et une capture d'écran) :
   --snapshot docs/preview.png
 ```
 
+### Ajouts de la v0.2
+
+- **Police et taille au niveau de la sélection** — les contrôles de police et de taille modifient désormais le texte sélectionné ; sans sélection, ils changent la valeur par défaut du document.
+- **Mise en forme des paragraphes et des caractères** — titres H1–H3 (⌘0–⌘3), retrait de paragraphe, retrait de première ligne, interligne par paragraphe, quatre alignements, exposant et indice.
+- **Mise en page et pagination** — A4/A3, paysage/portrait, marges prédéfinies, aperçu de pagination en lecture seule et PDF paginé. La pagination est calculée en mesurant chaque bloc : un titre plus grand occupe donc proportionnellement plus de place.
+- **Import et export DOCX** via un LibreOffice installé localement, appelé en **processus séparé**. Rien n'est lié ni embarqué : les obligations GPL-3.0 de LibreOffice ne s'étendent donc pas à ce projet sous MIT. `MORI_SOFFICE` permet d'indiquer un chemin non standard.
+
 ## Résultats de vérification
 
 | Élément | Résultat |
 | --- | --- |
-| Tests du cœur | 21 / 21 réussis |
-| Contrôles de l'éditeur natif | 28 / 28 réussis |
+| Tests du cœur | 49 / 49 réussis |
+| Contrôles de l'éditeur natif | 56 / 56 réussis |
 | Déclinaisons de polices installées énumérées | 557 |
 | Polices couvrant les points de code mongols échantillonnés | 44 |
 | Polices couvrant les points de code PUA testés | 47 |
@@ -142,10 +149,8 @@ des polices natives et relecture d'une copie de récupération isolée.
   diverses méthodes de saisie mongoles professionnelles doivent encore être validées sur machine réelle,
   éditeur par éditeur et version par version. Les méthodes de saisie Windows ne fonctionneront pas sur
   macOS simplement parce qu'un adaptateur d'encodage a été ajouté.
-- **Fonctions Word** : pas d'échange DOCX, pas de tableaux, pas de suivi des modifications, pas de
-  commentaires ; il s'agit actuellement d'un document unique sur un plan horizontal continu.
-- **Pagination et PDF** : la pagination automatique des documents longs n'est pas implémentée et la
-  fidélité des glyphes en PDF n'est pas vérifiée — contrôlez les coupures dans l'aperçu avant impression.
+- **Fonctions Word** : pas de tableaux, d'images, d'en-têtes/pieds de page, de numéros de page, de notes de bas de page, de suivi des modifications ni de commentaires ; la pagination est un aperçu en lecture seule, pas une édition directement dans la page.
+- **Pagination et PDF** : la pagination par mesure de chaque bloc et l'export PDF paginé sont implémentés. Un paragraphe plus long qu'une page n'est pas scindé : il occupe sa propre page avec un avertissement de coupure. La fidélité glyphe par glyphe du PDF reste non vérifiée.
 - **Étendue des jeux de caractères** : la conversion complète pour le todo, le sibe et le mandchou sort du périmètre vérifié.
 - **Copie de récupération** : ne conserve que le dernier espace de travail
   (`~/Library/Application Support/Mori/draft.mglx`) ; ce n'est pas un historique de versions.
@@ -210,8 +215,8 @@ Limites à garder en tête :
 - [ ] Migration des conventions de glyphes 2010 ↔ 2023 avec tests de non-régression
 - [ ] Vérification de conformité complète à GB/T 25914-2023
 - [ ] Validation sur machine réelle de méthodes de saisie professionnelles précises
-- [ ] Pagination automatique et fidélité des glyphes en PDF
-- [ ] Import et export DOCX
+- [x] Pagination automatique et fidélité des glyphes en PDF
+- [x] Import et export DOCX
 - [ ] Historique de versions des documents
 
 ## Contribuer

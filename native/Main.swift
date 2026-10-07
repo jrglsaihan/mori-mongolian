@@ -53,6 +53,141 @@ private func isBundledURL(_ url: URL, root: URL) -> Bool {
     return path == rootPath || path.hasPrefix(rootPath + "/")
 }
 
+private enum DocxError: LocalizedError {
+    case message(String)
+    var errorDescription: String? { if case .message(let value) = self { return value }; return nil }
+}
+
+private struct DocxTool { let path: String }
+
+// LibreOffice is invoked as a separate process only. Nothing is linked or bundled,
+// so its GPL-3.0 obligations do not extend to this application's MIT-licensed code.
+private enum DocxSupport {
+    static var candidates: [String] {
+        [
+            "/Applications/LibreOffice.app/Contents/MacOS/soffice",
+            NSHomeDirectory() + "/Applications/LibreOffice.app/Contents/MacOS/soffice",
+            "/opt/homebrew/bin/soffice",
+            "/usr/local/bin/soffice"
+        ]
+    }
+
+    static func locate() -> DocxTool? {
+        // MORI_SOFFICE allows a non-standard install location and lets the plumbing be
+        // exercised against a stub during testing.
+        if let override = ProcessInfo.processInfo.environment["MORI_SOFFICE"],
+           FileManager.default.isExecutableFile(atPath: override) {
+            return DocxTool(path: override)
+        }
+        for path in candidates where FileManager.default.isExecutableFile(atPath: path) {
+            return DocxTool(path: path)
+        }
+        return nil
+    }
+
+    static func selfTest(tool: DocxTool) throws -> String {
+        let workspace = URL(fileURLWithPath: NSTemporaryDirectory())
+            .appendingPathComponent("mori-docx-probe-\(UUID().uuidString)", isDirectory: true)
+        let profile = workspace.appendingPathComponent("profile", isDirectory: true)
+        try FileManager.default.createDirectory(at: profile, withIntermediateDirectories: true)
+        defer { try? FileManager.default.removeItem(at: workspace) }
+        let source = workspace.appendingPathComponent("probe.html")
+        try Data("<!doctype html><html><body><p>ᠮᠣᠩᠭᠣᠯ ᠪᠢᠴᠢᠭ probe</p></body></html>".utf8).write(to: source, options: .atomic)
+        try run(tool: tool, arguments: [
+            "--headless", "--norestore", "--nolockcheck", profileArgument(profile),
+            "--convert-to", "docx:MS Word 2007 XML", "--outdir", workspace.path, source.path
+        ], timeout: 240)
+        let produced = workspace.appendingPathComponent("probe.docx")
+        guard FileManager.default.fileExists(atPath: produced.path) else {
+            throw DocxError.message("转换未生成 DOCX 文件。")
+        }
+        let size = (try FileManager.default.attributesOfItem(atPath: produced.path)[.size] as? NSNumber)?.intValue ?? 0
+        guard size > 0 else { throw DocxError.message("生成的 DOCX 是空文件。") }
+        try run(tool: tool, arguments: [
+            "--headless", "--norestore", "--nolockcheck", profileArgument(profile),
+            "--convert-to", "html", "--outdir", workspace.path, produced.path
+        ], timeout: 240)
+        guard FileManager.default.fileExists(atPath: source.path) else {
+            throw DocxError.message("无法回读转换后的 HTML。")
+        }
+        let text = (try? String(contentsOf: source, encoding: .utf8)) ?? ""
+        guard text.count > 0 else { throw DocxError.message("回读的 HTML 为空。") }
+        return "DOCX \(size) 字节 · 回读 \(text.count) 字符"
+    }
+
+    private static func profileArgument(_ directory: URL) -> String {
+        "-env:UserInstallation=file://" + directory.path.addingPercentEncoding(withAllowedCharacters: .urlPathAllowed)!
+    }
+
+    @discardableResult
+    static func run(tool: DocxTool, arguments: [String], timeout: TimeInterval = 180) throws -> String {
+        let process = Process()
+        process.executableURL = URL(fileURLWithPath: tool.path)
+        process.arguments = arguments
+        process.standardInput = FileHandle.nullDevice
+        let pipe = Pipe()
+        process.standardOutput = pipe
+        process.standardError = pipe
+        try process.run()
+        let deadline = Date().addingTimeInterval(timeout)
+        while process.isRunning && Date() < deadline { usleep(150_000) }
+        if process.isRunning {
+            process.terminate()
+            usleep(400_000)
+            if process.isRunning { kill(process.processIdentifier, SIGKILL) }
+            throw DocxError.message("LibreOffice 转换超时（超过 \(Int(timeout)) 秒），进程已终止。")
+        }
+        let output = pipe.fileHandleForReading.readDataToEndOfFile()
+        let text = String(data: output, encoding: .utf8) ?? ""
+        guard process.terminationStatus == 0 else {
+            let tail = text.split(separator: "\n").suffix(3).joined(separator: " ")
+            throw DocxError.message("LibreOffice 转换失败（退出码 \(process.terminationStatus)）。\(tail)")
+        }
+        return text
+    }
+
+    static func exportDOCX(tool: DocxTool, html: String, destination: URL) throws {
+        let workspace = URL(fileURLWithPath: NSTemporaryDirectory())
+            .appendingPathComponent("mori-docx-\(UUID().uuidString)", isDirectory: true)
+        let profile = workspace.appendingPathComponent("profile", isDirectory: true)
+        try FileManager.default.createDirectory(at: profile, withIntermediateDirectories: true)
+        defer { try? FileManager.default.removeItem(at: workspace) }
+        let source = workspace.appendingPathComponent("document.html")
+        try Data(html.utf8).write(to: source, options: .atomic)
+        try run(tool: tool, arguments: [
+            "--headless", "--norestore", "--nolockcheck", profileArgument(profile),
+            "--convert-to", "docx:MS Word 2007 XML", "--outdir", workspace.path, source.path
+        ])
+        let produced = workspace.appendingPathComponent("document.docx")
+        guard FileManager.default.fileExists(atPath: produced.path) else {
+            throw DocxError.message("LibreOffice 未生成 DOCX 文件。")
+        }
+        if FileManager.default.fileExists(atPath: destination.path) {
+            try FileManager.default.removeItem(at: destination)
+        }
+        try FileManager.default.moveItem(at: produced, to: destination)
+    }
+
+    static func importDOCX(tool: DocxTool, source: URL) throws -> Data {
+        let workspace = URL(fileURLWithPath: NSTemporaryDirectory())
+            .appendingPathComponent("mori-docx-\(UUID().uuidString)", isDirectory: true)
+        let profile = workspace.appendingPathComponent("profile", isDirectory: true)
+        try FileManager.default.createDirectory(at: profile, withIntermediateDirectories: true)
+        defer { try? FileManager.default.removeItem(at: workspace) }
+        let copy = workspace.appendingPathComponent("input.docx")
+        try FileManager.default.copyItem(at: source, to: copy)
+        try run(tool: tool, arguments: [
+            "--headless", "--norestore", "--nolockcheck", profileArgument(profile),
+            "--convert-to", "html", "--outdir", workspace.path, copy.path
+        ])
+        let produced = workspace.appendingPathComponent("input.html")
+        guard FileManager.default.fileExists(atPath: produced.path) else {
+            throw DocxError.message("LibreOffice 未生成 HTML 中间文件。")
+        }
+        return try Data(contentsOf: produced)
+    }
+}
+
 @MainActor
 private final class PrintJob: NSObject, WKNavigationDelegate, WKUIDelegate {
     let webView: WKWebView
@@ -97,7 +232,8 @@ private final class PrintJob: NSObject, WKNavigationDelegate, WKUIDelegate {
             decisionHandler(.cancel)
             return
         }
-        let allowed = url.absoluteString == "about:blank" || isBundledURL(url, root: root)
+        let allowed = url.absoluteString == "about:blank" || (url.scheme ?? "").lowercased() == "about"
+            || isBundledURL(url, root: root)
         decisionHandler(allowed ? .allow : .cancel)
     }
 
@@ -228,19 +364,21 @@ private final class MoriApplication: NSObject, NSApplicationDelegate, NSWindowDe
                                                  selector: #selector(smokeTimedOut), userInfo: nil, repeats: false)
         }
         // Deny network requests, including fetches and subresources, not just navigations.
+        // about: must stay allowed: a srcdoc iframe (used by the page preview) loads with
+        // the URL about:srcdoc, and blocking it leaves the frame stuck on about:blank.
         let ruleObjects: [[String: Any]] = [
             ["trigger": ["url-filter": ".*"], "action": ["type": "block"]],
             ["trigger": ["url-filter": "^file://"], "action": ["type": "ignore-previous-rules"]],
             ["trigger": ["url-filter": "^data:"], "action": ["type": "ignore-previous-rules"]],
             ["trigger": ["url-filter": "^blob:"], "action": ["type": "ignore-previous-rules"]],
-            ["trigger": ["url-filter": "^about:blank$"], "action": ["type": "ignore-previous-rules"]]
+            ["trigger": ["url-filter": "^about:"], "action": ["type": "ignore-previous-rules"]]
         ]
         do {
             let data = try JSONSerialization.data(withJSONObject: ruleObjects)
             guard let source = String(data: data, encoding: .utf8) else {
                 throw ShellError.message("Could not encode the local-only resource policy.")
             }
-            WKContentRuleListStore.default().compileContentRuleList(forIdentifier: "MoriLocalOnlyV1",
+            WKContentRuleListStore.default().compileContentRuleList(forIdentifier: "MoriLocalOnlyV2",
                                                                    encodedContentRuleList: source) { [weak self] rules, error in
                 guard let self, !self.smokeFinishing else { return }
                 guard let rules else {
@@ -442,6 +580,83 @@ private final class MoriApplication: NSObject, NSApplicationDelegate, NSWindowDe
             }
             printJob = job
             job.start(html: html)
+        case "docxProbe":
+            guard let tool = DocxSupport.locate() else { reply(id: id, error: "未检测到 LibreOffice。"); return }
+            guard beginModal(id: id) else { return }
+            modalAction = false
+            DispatchQueue.global(qos: .userInitiated).async {
+                let outcome: Result<String, Error> = Result { try DocxSupport.selfTest(tool: tool) }
+                Task { @MainActor in
+                    switch outcome {
+                    case .success(let detail): self.reply(id: id, result: ["ok": true, "detail": detail])
+                    case .failure(let error): self.reply(id: id, result: ["ok": false, "detail": error.localizedDescription])
+                    }
+                }
+            }
+        case "docxAvailable":
+            let tool = DocxSupport.locate()
+            reply(id: id, result: ["available": tool != nil, "path": tool?.path as Any? ?? NSNull()])
+        case "docxPick":
+            guard beginModal(id: id) else { return }
+            let panel = NSOpenPanel()
+            panel.title = "选择要导入的 DOCX"
+            panel.allowedContentTypes = [UTType(filenameExtension: "docx") ?? .data]
+            panel.allowsMultipleSelection = false
+            panel.canChooseDirectories = false
+            panel.canChooseFiles = true
+            panel.beginSheetModal(for: window) { [weak self] response in
+                guard let self else { return }
+                self.modalAction = false
+                guard response == .OK, let url = panel.url else { self.reply(id: id, result: ["cancelled": true]); return }
+                self.reply(id: id, result: ["name": url.lastPathComponent, "path": url.path])
+            }
+        case "docxExport":
+            guard let html = payload["html"] as? String, let requested = payload["name"] as? String else {
+                reply(id: id, error: "docxExport requires html and name."); return
+            }
+            guard html.utf8.count <= maximumOpenBytes else { reply(id: id, error: "内容过大，无法导出 DOCX。"); return }
+            guard let tool = DocxSupport.locate() else { reply(id: id, error: "未检测到本机安装的 LibreOffice。"); return }
+            guard beginModal(id: id) else { return }
+            let panel = NSSavePanel()
+            panel.title = "导出 DOCX（经本机 LibreOffice 转换）"
+            panel.allowedContentTypes = [UTType(filenameExtension: "docx") ?? .data]
+            panel.canCreateDirectories = true
+            let stem = ((requested as NSString).lastPathComponent as NSString).deletingPathExtension
+            panel.nameFieldStringValue = (stem.isEmpty || stem == "." ? "Untitled" : stem) + ".docx"
+            panel.beginSheetModal(for: window) { [weak self] response in
+                guard let self else { return }
+                self.modalAction = false
+                guard response == .OK, let url = panel.url else { self.reply(id: id, result: ["cancelled": true]); return }
+                DispatchQueue.global(qos: .userInitiated).async {
+                    let outcome: Result<Void, Error> = Result { try DocxSupport.exportDOCX(tool: tool, html: html, destination: url) }
+                    Task { @MainActor in
+                        switch outcome {
+                        case .success: self.reply(id: id, result: ["name": url.lastPathComponent, "path": url.path])
+                        case .failure(let error): self.reply(id: id, error: error.localizedDescription)
+                        }
+                    }
+                }
+            }
+        case "docxImport":
+            guard let path = payload["path"] as? String else { reply(id: id, error: "docxImport requires path."); return }
+            guard let tool = DocxSupport.locate() else { reply(id: id, error: "未检测到本机安装的 LibreOffice。"); return }
+            let source = URL(fileURLWithPath: path)
+            guard source.pathExtension.lowercased() == "docx" else { reply(id: id, error: "仅支持 .docx 文件。"); return }
+            guard beginModal(id: id) else { return }
+            modalAction = false
+            DispatchQueue.global(qos: .userInitiated).async {
+                let outcome: Result<Data, Error> = Result { try DocxSupport.importDOCX(tool: tool, source: source) }
+                Task { @MainActor in
+                    switch outcome {
+                    case .success(let data) where data.count <= maximumOpenBytes:
+                        self.reply(id: id, result: ["base64": data.base64EncodedString()])
+                    case .success:
+                        self.reply(id: id, error: "转换结果超过 64MB 限制。")
+                    case .failure(let error):
+                        self.reply(id: id, error: error.localizedDescription)
+                    }
+                }
+            }
         default: reply(id: id, error: "Unsupported native action: " + action)
         }
     }
@@ -570,8 +785,13 @@ private final class MoriApplication: NSObject, NSApplicationDelegate, NSWindowDe
 
     func webView(_ webView: WKWebView, decidePolicyFor navigationAction: WKNavigationAction,
                  decisionHandler: @escaping (WKNavigationActionPolicy) -> Void) {
-        guard navigationAction.targetFrame != nil, let url = navigationAction.request.url,
-              isBundledURL(url, root: webRoot) else { decisionHandler(.cancel); return }
+        guard navigationAction.targetFrame != nil, let url = navigationAction.request.url else {
+            decisionHandler(.cancel); return
+        }
+        // Sub-frames may hold local about: documents: the paginated preview is a srcdoc
+        // iframe whose URL is about:srcdoc, which is never a bundled file URL.
+        if (url.scheme ?? "").lowercased() == "about" { decisionHandler(.allow); return }
+        guard isBundledURL(url, root: webRoot) else { decisionHandler(.cancel); return }
         // The single editor document never navigates away, including to another local document.
         if navigationAction.targetFrame?.isMainFrame == true, navigationFinished {
             guard let current = webView.url,
