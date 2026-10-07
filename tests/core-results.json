@@ -1,7 +1,7 @@
 {
   "ok": true,
-  "passed": 56,
-  "total": 56,
+  "passed": 59,
+  "total": 59,
   "tests": [
     {
       "name": "UTF8 exact control preservation",
@@ -225,6 +225,18 @@
     },
     {
       "name": "punct settings default and round trip",
+      "pass": true
+    },
+    {
+      "name": "pagination reports units used per page",
+      "pass": true
+    },
+    {
+      "name": "page units match page count",
+      "pass": true
+    },
+    {
+      "name": "empty document reports zero units",
       "pass": true
     }
   ]

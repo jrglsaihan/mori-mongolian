@@ -285,6 +285,14 @@
         "pass" : true
       },
       {
+        "name" : "page frames are full page width",
+        "pass" : true
+      },
+      {
+        "name" : "pages sit on a uniform grid",
+        "pass" : true
+      },
+      {
         "name" : "gap really shifts following content",
         "pass" : true
       },
@@ -472,7 +480,7 @@
     "pageGapRect" : {
       "h" : 0,
       "left" : 1153,
-      "w" : 25.5
+      "w" : 172.5
     },
     "previewDiagnostics" : {
       "bodyHTMLLength" : 1339,
@@ -727,7 +735,7 @@
       },
       {
         "label" : "end",
-        "ms" : 2386
+        "ms" : 2397
       }
     ]
   },

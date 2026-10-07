@@ -103,20 +103,21 @@ export function normalizePage(input){
 export function paginateBlocks(blocks,{contentHeight,capacity}){
   if(!Number.isFinite(contentHeight)||contentHeight<=0)throw new Error('无效的版心高度');
   if(!Number.isFinite(capacity)||capacity<=0)throw new Error('无效的每页容量');
-  const pages=[];const overflow=[];
+  const pages=[];const pageUnits=[];const overflow=[];
   let current=[];let used=0;
+  const flush=()=>{pages.push(current);pageUnits.push(used);current=[];used=0;};
   blocks.forEach((block,index)=>{
     const length=Math.max(0,Number(block.length)||0);
     const weight=Number.isFinite(Number(block.weight))&&Number(block.weight)>0?Number(block.weight):1;
     const lines=Math.max(1,Math.ceil((length+0.5)/contentHeight));
     const units=lines*weight;
     if(units>capacity)overflow.push({index,units,lines,capacity});
-    if(used+units>capacity&&current.length){pages.push(current);current=[];used=0;}
+    if(used+units>capacity&&current.length)flush();
     current.push(index);used+=units;
   });
-  if(current.length)pages.push(current);
-  if(!pages.length)pages.push([]);
-  return {pages,overflow,totalPages:pages.length};
+  if(current.length)flush();
+  if(!pages.length){pages.push([]);pageUnits.push(0);}
+  return {pages,pageUnits,overflow,totalPages:pages.length};
 }
 
 export function textDocument(text){return schema.node('doc',null,text.replace(/\r\n?/g,'\n').split('\n').map(s=>schema.node('paragraph',null,s?schema.text(s):null)));}

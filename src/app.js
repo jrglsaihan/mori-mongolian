@@ -28,20 +28,21 @@ function documentJSON(data,pretty=false){const content=JSON.stringify(data,null,
 async function saveDraft(){if(!native||composing)return;const r=revision;try{await bridge('draftSave',{content:documentJSON(serialize())});if(r===revision)$('saveState').textContent=dirty?'恢复副本已备份 · 请保存文档':'文档已保存';}catch(e){$('saveState').textContent='恢复副本备份失败';fail(e);}}
 
 const PAGE_GAP_PX=30;
-let pageBreakPositions=[];
-// Each paragraph in vertical-lr starts at the top of its own column, so a page
-// boundary always lands on a paragraph start. Inserting a zero-height block of the
-// gap's width at that position consumes real layout space, which is what actually
-// separates the pages — an overlay could never push content aside.
+let pageBreakSpecs=[];
+// Each paragraph in vertical-lr starts at the top of its own column, so a page boundary
+// always lands on a paragraph start. The spacer at that position fills the columns the
+// page did not use plus the gap, which is what makes every page the same width and keeps
+// the pages on a uniform grid. A zero-height overlay could never push content aside.
 function pageBreakPlugin(){
   return new Plugin({key:new PluginKey('moriPageBreak'),props:{decorations(state){
-    if(!pageBreakPositions.length)return null;
+    if(!pageBreakSpecs.length)return null;
     const decorations=[];
-    for(const position of pageBreakPositions){
-      if(position<=0||position>=state.doc.content.size)continue;
-      decorations.push(Decoration.widget(position,()=>{
+    for(const spec of pageBreakSpecs){
+      if(spec.position<=0||spec.position>=state.doc.content.size)continue;
+      decorations.push(Decoration.widget(spec.position,()=>{
         const element=document.createElement('div');
         element.className='page-gap';
+        element.style.width=spec.width.toFixed(1)+'px';
         element.setAttribute('aria-hidden','true');
         return element;
       },{side:-1}));
@@ -185,14 +186,14 @@ function applySettings(){
 }
 let overlayTimer=null,overlayPagination=null,lastBreakSignature=null;
 function scheduleOverlay(){clearTimeout(overlayTimer);overlayTimer=setTimeout(renderPageOverlay,160);}
-function refreshPageBreaks(positions){
+function refreshPageBreaks(specs){
   // renderPageOverlay runs from dispatchTransaction, so dispatching here can re-enter.
-  // One dispatch per distinct position set is enough: the decoration plugin rebuilds
-  // from pageBreakPositions on every state change anyway.
-  const signature=positions.join(',');
+  // One dispatch per distinct spec set is enough: the decoration plugin rebuilds from
+  // pageBreakSpecs on every state change anyway.
+  const signature=specs.map(spec=>spec.position+':'+Math.round(spec.width)).join(',');
   if(signature===lastBreakSignature)return;
   lastBreakSignature=signature;
-  pageBreakPositions=positions;
+  pageBreakSpecs=specs;
   view.dispatch(view.state.tr.setMeta('moriPageBreak',true));
 }
 function renderPageOverlay(){
@@ -208,31 +209,44 @@ function renderPageOverlay(){
   const pag=computePagination(view.state.doc,settings);
   overlayPagination=pag;
   const editorRect=view.dom.getBoundingClientRect();
-  const positions=pag.pages.slice(1).map(indexes=>pag.blocks[indexes[0]]&&pag.blocks[indexes[0]].offset).filter(position=>typeof position==='number');
-  refreshPageBreaks(positions);
+  // Measure each page's real extent from the DOM instead of estimating it from the unit
+  // model: the model is approximate, so estimated padding left the pages drifting off a
+  // uniform grid. A page's own content sits before its trailing spacer, so reading it is
+  // stable even while the spacers are being adjusted.
+  const measured=pag.pages.map(indexes=>{
+    const firstBlock=pag.blocks[indexes[0]];
+    const lastBlock=pag.blocks[indexes[indexes.length-1]];
+    const firstNode=firstBlock?view.nodeDOM(firstBlock.offset):null;
+    const lastNode=lastBlock?view.nodeDOM(lastBlock.offset):null;
+    if(!firstNode||!lastNode||typeof firstNode.getBoundingClientRect!=='function')return null;
+    const firstRect=firstNode.getBoundingClientRect();
+    const lastRect=lastNode.getBoundingClientRect();
+    return {start:firstRect.left-editorRect.left,used:Math.max(1,lastRect.right-firstRect.left)};
+  });
+  const specs=pag.pages.slice(1).map((indexes,index)=>{
+    const first=pag.blocks[indexes[0]];
+    const page=measured[index];
+    if(!first||!page)return null;
+    const fill=Math.max(0,geometry.contentWidthPx-page.used);
+    return {position:first.offset,width:fill+PAGE_GAP_PX};
+  }).filter(Boolean);
+  refreshPageBreaks(specs);
   const frag=document.createDocumentFragment();
   pag.pages.forEach((indexes,pageIndex)=>{
-    const first=pag.blocks[indexes[0]];
-    if(!first)return;
-    const node=view.nodeDOM(first.offset);
-    if(!node||typeof node.getBoundingClientRect!=='function')return;
-    const start=node.getBoundingClientRect().left-editorRect.left;
-    const next=pag.pages[pageIndex+1]&&pag.blocks[pag.pages[pageIndex+1][0]];
-    const nextNode=next?view.nodeDOM(next.offset):null;
-    const end=nextNode&&typeof nextNode.getBoundingClientRect==='function'
-      ? nextNode.getBoundingClientRect().left-editorRect.left-PAGE_GAP_PX
-      : Math.max(start+40,editorRect.width);
+    const page=measured[pageIndex];
+    if(!page)return;
+    const start=page.start;
     const frame=document.createElement('div');
     frame.className='page-frame';
     frame.style.left=start.toFixed(1)+'px';
-    frame.style.width=Math.max(24,end-start).toFixed(1)+'px';
+    frame.style.width=geometry.contentWidthPx.toFixed(1)+'px';
     frame.style.height=geometry.contentHeightPx.toFixed(1)+'px';
     frame.innerHTML='<span class="page-frame-label">第 '+(pageIndex+1)+' 页</span>';
     frag.appendChild(frame);
-    if(nextNode){
+    if(pageIndex<pag.pages.length-1){
       const band=document.createElement('div');
       band.className='page-gap-band';
-      band.style.left=end.toFixed(1)+'px';
+      band.style.left=(start+geometry.contentWidthPx).toFixed(1)+'px';
       band.style.width=PAGE_GAP_PX+'px';
       band.style.height=geometry.contentHeightPx.toFixed(1)+'px';
       frag.appendChild(band);
@@ -535,6 +549,16 @@ window.moriSmokeTest=async()=>{const checks=[],check=(name,pass)=>checks.push({n
    check('pages advance left to right',(()=>{
      const xs=Array.from(document.querySelectorAll('#pageOverlay .page-frame')).map(m=>parseFloat(m.style.left));
      return xs.length>=2&&xs[0]>=0&&xs.every((v,i)=>i===0||v>xs[i-1]);
+   })());
+   check('page frames are full page width',(()=>{
+     const frames=Array.from(document.querySelectorAll('#pageOverlay .page-frame'));
+     return frames.length>0&&frames.every(f=>Math.abs(parseFloat(f.style.width)-landGeo.contentWidthPx)<1);
+   })());
+   check('pages sit on a uniform grid',(()=>{
+     const xs=Array.from(document.querySelectorAll('#pageOverlay .page-frame')).map(m=>parseFloat(m.style.left));
+     if(xs.length<2)return true;
+     const pitch=xs[1]-xs[0];
+     return pitch>landGeo.contentWidthPx&&xs.every((v,i)=>i===0||Math.abs((v-xs[i-1])-pitch)<2);
    })());
    pageGapRect=(()=>{
      const element=view.dom.querySelector('.page-gap');
