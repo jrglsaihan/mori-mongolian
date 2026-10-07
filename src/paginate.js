@@ -46,8 +46,22 @@ export function measureBlocks(doc,base){
   return entries.map((entry,index)=>({
     index:entry.index,offset:entry.offset,node:entry.node,
     length:Math.max(0,rects[index].height),
+    // In the measuring host the block's width is its exact extent along the block axis,
+    // i.e. how many columns it occupies. Reading it here keeps page packing independent
+    // of the editor's own layout, which is never in a settled state while the spacers
+    // between pages are being adjusted.
+    thickness:Math.max(1,rects[index].width),
     weight:(Math.max(1,rects[index].width)+base.size*BLOCK_GAP_EM)/basePitch
   }));
+}
+
+/** Block-axis extent a set of blocks occupies, in CSS px at zoom 1. */
+export function pageExtent(blocks){
+  if(!blocks.length)return 0;
+  // No inter-block term: measured against the real editor the sum of block extents already
+  // matched the rendered pitch, and adding the paragraph gap on top overshot by roughly
+  // one gap per block, which made the fill width grow on every pass.
+  return blocks.reduce((total,block)=>total+Math.max(1,block.thickness),0);
 }
 let cachedPagination=null;
 function settingsSignature(settings){

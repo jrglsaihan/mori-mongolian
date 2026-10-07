@@ -107,12 +107,26 @@ Optional native self-check (writes a report and a screenshot):
 - **Page setup and pagination** — A4/A3, landscape/portrait, margin presets, a paginated read-only preview and paginated PDF output. Pagination is computed by measuring every block, so headings with larger type consume proportionally more of the page.
 - **DOCX import and export** through a locally installed LibreOffice, invoked as a **separate process**. Nothing is linked or bundled, so LibreOffice's GPL-3.0 obligations do not extend to this MIT-licensed project. Set `MORI_SOFFICE` to use a non-standard install path.
 
+### baosao — the built-in DOCX engine
+
+DOCX is not a proprietary format: it is a ZIP container holding a handful of XML parts. **baosao** writes that package itself, so **DOCX export no longer calls any external converter and no longer needs LibreOffice**.
+
+- `src/baosao/zip.js` — dependency-free ZIP writer with CRC32. Uses the platform's `CompressionStream('deflate-raw')` when available and falls back to STORED entries, which DOCX permits
+- `src/baosao/ooxml.js` — document model to WordprocessingML: paragraphs, headings, bold/italic/underline, colour, font and size, super/subscript, alignment, indent and first-line indent, line spacing, bullets, page size and margins
+- `src/baosao/index.js` — assembles the ten parts and **verifies them**
+
+**Mongolian vertical writing is emitted as `<w:textDirection w:val="tbLrV"/>`** (lines top to bottom, columns left to right). Its sibling `tbRl` is CJK vertical, where columns run right to left; an assertion in the self-check guards against using it by mistake.
+
+Every export is verified first — central directory readable, all required parts present, CRCs matching, every XML part well formed, the vertical direction correct — and **nothing is written unless the check passes**.
+
+> **Not yet verified**: Microsoft's own compatibility notes (MS-OI29500) record that Word interprets `tbLrV` as a 90° rotation inside tables, which is fake vertical. The file follows ECMA-376, but **how Word actually renders it has to be confirmed on real Word.**
+
 ## Verification results
 
 | Item | Result |
 | --- | --- |
-| Core tests | 49 / 49 passed |
-| Native editor checks | 56 / 56 passed |
+| Core tests | 59 / 59 passed |
+| Native editor checks | 75 / 75 passed |
 | Installed font faces enumerated | 557 |
 | Fonts covering Mongolian sample code points | 44 |
 | Fonts covering tested private-use code points | 47 |

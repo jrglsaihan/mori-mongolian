@@ -121,12 +121,26 @@ Optionaler nativer Selbsttest (schreibt Bericht und Screenshot):
 - **Seiteneinrichtung und Seitenumbruch** — A4/A3, Quer-/Hochformat, Randvorgaben, schreibgeschützte Umbruchvorschau und paginiertes PDF. Der Umbruch wird durch Messen jedes Blocks berechnet, daher belegen größere Überschriften entsprechend mehr Platz.
 - **DOCX-Import und -Export** über ein lokal installiertes LibreOffice, aufgerufen als **separater Prozess**. Es wird nichts gelinkt oder mitgeliefert, die GPL-3.0-Pflichten von LibreOffice reichen daher nicht auf dieses MIT-Projekt durch. `MORI_SOFFICE` legt einen abweichenden Pfad fest.
 
+### baosao — die eingebaute DOCX-Engine
+
+DOCX ist kein proprietäres Format: Es ist ein ZIP-Container mit einigen XML-Teilen. **baosao** schreibt dieses Paket selbst, daher **ruft der DOCX-Export keinen externen Konverter mehr auf und braucht kein LibreOffice**.
+
+- `src/baosao/zip.js` — abhängigkeitsfreier ZIP-Schreiber mit CRC32. Nutzt `CompressionStream('deflate-raw')`, falls vorhanden, sonst STORED-Einträge
+- `src/baosao/ooxml.js` — Dokumentmodell zu WordprocessingML: Absätze, Überschriften, fett/kursiv/unterstrichen, Farbe, Schrift und Größe, hoch-/tiefgestellt, Ausrichtung, Einzüge, Zeilenabstand, Aufzählungen, Papierformat und Ränder
+- `src/baosao/index.js` — setzt die zehn Teile zusammen und **prüft sie**
+
+**Der vertikale mongolische Satz wird als `<w:textDirection w:val="tbLrV"/>` geschrieben.** Das verwandte `tbRl` ist CJK-Vertikalsatz, bei dem die Spalten von rechts nach links laufen; eine Prüfung verhindert die Verwechslung.
+
+Jeder Export wird zuerst geprüft — Zentralverzeichnis, Pflichtteile, CRCs, XML-Wohlgeformtheit, Schreibrichtung — und **ohne bestandene Prüfung wird nichts geschrieben**.
+
+> **Nicht verifiziert**: Microsofts Kompatibilitätshinweise (MS-OI29500) halten fest, dass Word `tbLrV` in Tabellen als 90°-Drehung deutet. Die Datei folgt ECMA-376, **die tatsächliche Darstellung in Word muss aber an echtem Word geprüft werden**.
+
 ## Prüfergebnisse
 
 | Punkt | Ergebnis |
 | --- | --- |
-| Kerntests | 49 / 49 bestanden |
-| Prüfungen des nativen Editors | 56 / 56 bestanden |
+| Kerntests | 59 / 59 bestanden |
+| Prüfungen des nativen Editors | 75 / 75 bestanden |
 | Aufgelistete Schriftschnitte | 557 |
 | Schriften mit Abdeckung der mongolischen Beispiel-Codepunkte | 44 |
 | Schriften mit Abdeckung der geprüften PUA-Codepunkte | 47 |

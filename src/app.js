@@ -8,13 +8,13 @@ import {history,undo,redo} from 'prosemirror-history';
 import {wrapInList,splitListItem,liftListItem} from 'prosemirror-schema-list';
 import {schema,profiles,plainText,textDocument,inspectText,decodeBytes,b64ToBytes,bytesToB64,validateFile,initConverter,convertText,escapeHTML,cssString,
   pageGeometry,pageSummary,normalizePage,DEFAULT_PAGE,DOC_VERSION,safeFont,safeSize,ALIGNMENTS,LEADINGS,FONT_SIZES,HEADING_SCALE,punctuationRuns} from './core.js';
-import {computePagination,paginatedHTML,blocksToHTML} from './paginate.js';
+import {computePagination,paginatedHTML,blocksToHTML,pageExtent} from './paginate.js';
 import {buildDOCX,verifyDOCX,describe as describeBaosao,BAOSAO_VERSION} from './baosao/index.js';
 
 const $=id=>document.getElementById(id),native=!!window.webkit?.messageHandlers?.mori;
 let seq=0,pending=new Map(),dirty=false,revision=0,draftTimer,composing=false,fonts=[],profile='2023',originals=[],converterVersion='unavailable';
 let settings={font:'Mori Noto',size:28,leading:1.8,alignment:'start',margin:48,punctShift:-0.15,punctScale:1,page:{...DEFAULT_PAGE,margins:{...DEFAULT_PAGE.margins}}};
-let latestSavedRevision=0,conversionLog=[],docx={available:false,path:null},lastPagination=null,previewPages=0,previewDiagnostics=null,docxProbe=null,punctuationMetrics=null,multicolProbe=null,spacerProbe=null,baosaoReport=null,pageGapRect=null;
+let latestSavedRevision=0,conversionLog=[],docx={available:false,path:null},lastPagination=null,previewPages=0,previewDiagnostics=null,docxProbe=null,punctuationMetrics=null,multicolProbe=null,spacerProbe=null,baosaoReport=null,pageGapRect=null,pageFrameProbe=null;
 
 window.moriNativeReply=({id,result,error})=>{const p=pending.get(id);if(!p)return;pending.delete(id);error?p.reject(new Error(error)):p.resolve(result);};
 function bridge(action,payload={}){if(!native)return Promise.reject(new Error('此功能请在 Mori Mac 应用中使用。浏览器仅提供编辑预览。'));return new Promise((resolve,reject)=>{const id=String(++seq);pending.set(id,{resolve,reject});window.webkit.messageHandlers.mori.postMessage({id,action,payload});});}
@@ -184,7 +184,7 @@ function applySettings(){
   $('paper').style.zoom=Number($('zoom').value)/100;
   scheduleOverlay();
 }
-let overlayTimer=null,overlayPagination=null,lastBreakSignature=null;
+let overlayTimer=null,overlayPagination=null,lastBreakSignature=null,breakResettle=0;
 function scheduleOverlay(){clearTimeout(overlayTimer);overlayTimer=setTimeout(renderPageOverlay,160);}
 function refreshPageBreaks(specs){
   // renderPageOverlay runs from dispatchTransaction, so dispatching here can re-enter.
@@ -195,6 +195,10 @@ function refreshPageBreaks(specs){
   lastBreakSignature=signature;
   pageBreakSpecs=specs;
   view.dispatch(view.state.tr.setMeta('moriPageBreak',true));
+  // Changing the spacers moves the following content, so the frame positions measured a
+  // moment ago are already stale. Render once more against the settled layout. The cap
+  // stops a pair of spec sets from bouncing forever.
+  if(breakResettle<6){breakResettle++;scheduleOverlay();}
 }
 function renderPageOverlay(){
   const host=$('pageOverlay');if(!host)return;
@@ -208,56 +212,82 @@ function renderPageOverlay(){
   }
   const pag=computePagination(view.state.doc,settings);
   overlayPagination=pag;
-  const editorRect=view.dom.getBoundingClientRect();
-  // Measure each page's real extent from the DOM instead of estimating it from the unit
-  // model: the model is approximate, so estimated padding left the pages drifting off a
-  // uniform grid. A page's own content sits before its trailing spacer, so reading it is
-  // stable even while the spacers are being adjusted.
-  const measured=pag.pages.map(indexes=>{
-    const firstBlock=pag.blocks[indexes[0]];
-    const lastBlock=pag.blocks[indexes[indexes.length-1]];
-    const firstNode=firstBlock?view.nodeDOM(firstBlock.offset):null;
-    const lastNode=lastBlock?view.nodeDOM(lastBlock.offset):null;
-    if(!firstNode||!lastNode||typeof firstNode.getBoundingClientRect!=='function')return null;
-    const firstRect=firstNode.getBoundingClientRect();
-    const lastRect=lastNode.getBoundingClientRect();
-    return {start:firstRect.left-editorRect.left,used:Math.max(1,lastRect.right-firstRect.left)};
-  });
-  const specs=pag.pages.slice(1).map((indexes,index)=>{
+  // Frames live inside #pageOverlay, so every offset must be measured from the overlay's
+  // own origin. Measuring from the editor instead put the frames ~40px (one page margin)
+  // to the left of where they belong.
+  const overlayRect=host.getBoundingClientRect();
+  // Fixed-width spacers. Computing a fill width from the content created a feedback loop
+  // (spacers move the content, the content is re-measured, the fill changes again) that
+  // never settled. A constant gap has no loop at all.
+  const specs=pag.pages.slice(1).map(indexes=>{
     const first=pag.blocks[indexes[0]];
-    const page=measured[index];
-    if(!first||!page)return null;
-    const fill=Math.max(0,geometry.contentWidthPx-page.used);
-    return {position:first.offset,width:fill+PAGE_GAP_PX};
+    return first?{position:first.offset,width:PAGE_GAP_PX}:null;
   }).filter(Boolean);
   refreshPageBreaks(specs);
+  // Keep the paper at least as wide as the pages, otherwise later pages fall outside it.
+  // Sized in drawPageFrames, once the layout has settled.
+  requestAnimationFrame(()=>drawPageFrames());
+}
+function drawPageFrames(){
+  const host=$('pageOverlay');
+  const pag=overlayPagination;
+  if(!host||!pag)return;
+  const geometry=pageGeometry(settings.page);
+  const overlayRect=host.getBoundingClientRect();
+  // #pageOverlay lives inside #paper, which carries `zoom`. Anything written to style.left
+  // is scaled by that zoom on render, while getBoundingClientRect already returns scaled
+  // pixels — mixing the two scaled every offset twice (page pitch came out at 0.85 of the
+  // real one). Divide the measured deltas by the zoom so the whole calculation stays in
+  // unscaled units, matching geometry.contentWidthPx / contentHeightPx.
+  const zoom=Number($('zoom').value)/100||1;
+  // Columns are quantised: a page holds floor(contentWidth / linePitch) of them, so its
+  // true width is capacity × linePitch, a few px short of the nominal content box. Using
+  // that exact width for every page keeps the frames uniform instead of clamping some.
+  const pageWidth=Math.min(geometry.contentWidthPx,pag.capacity*pag.basePitch);
+  const starts=pag.pages.map(indexes=>{
+    const first=pag.blocks[indexes[0]];
+    const node=first?view.nodeDOM(first.offset):null;
+    if(!node||typeof node.getBoundingClientRect!=='function')return null;
+    return (node.getBoundingClientRect().left-overlayRect.left)/zoom;
+  });
   const frag=document.createDocumentFragment();
   pag.pages.forEach((indexes,pageIndex)=>{
-    const page=measured[pageIndex];
-    if(!page)return;
-    const start=page.start;
+    const start=starts[pageIndex];
+    if(start===null||start===undefined)return;
+    const nextStart=pageIndex+1<pag.pages.length?starts[pageIndex+1]:null;
+    // A page is a full page unless its own content ends earlier, in which case the frame
+    // stops at the gap so two pages can never overlap.
+    const available=nextStart===null||nextStart===undefined
+      ? pageWidth
+      : Math.max(40,nextStart-PAGE_GAP_PX-start);
     const frame=document.createElement('div');
     frame.className='page-frame';
     frame.style.left=start.toFixed(1)+'px';
-    frame.style.width=geometry.contentWidthPx.toFixed(1)+'px';
+    frame.style.width=Math.min(pageWidth,available).toFixed(1)+'px';
     frame.style.height=geometry.contentHeightPx.toFixed(1)+'px';
     frame.innerHTML='<span class="page-frame-label">第 '+(pageIndex+1)+' 页</span>';
     frag.appendChild(frame);
-    if(pageIndex<pag.pages.length-1){
+    if(nextStart!==null&&nextStart!==undefined){
       const band=document.createElement('div');
       band.className='page-gap-band';
-      band.style.left=(start+geometry.contentWidthPx).toFixed(1)+'px';
+      band.style.left=(nextStart-PAGE_GAP_PX).toFixed(1)+'px';
       band.style.width=PAGE_GAP_PX+'px';
       band.style.height=geometry.contentHeightPx.toFixed(1)+'px';
       frag.appendChild(band);
     }
   });
   host.replaceChildren(frag);
+  // Size the paper from the frames' own right edge rather than the editor's box: the
+  // editor reports the width of its own box, which does not include columns that overflow
+  // it, so sizing from there left later pages outside the paper.
+  const lastStart=starts.filter(value=>value!==null&&value!==undefined).pop()||0;
+  const needed=Math.ceil(lastStart+pageWidth+2*settings.margin);
+  if(parseFloat($('paper').style.minWidth||'0')<needed)$('paper').style.minWidth=needed+'px';
 }
 function marginPreset(m){const values=[m.top,m.right,m.bottom,m.left];const same=values.every(v=>v===values[0]);if(!same)return 'custom';return values[0]<=14?'12':values[0]>=28?'30':'20';}
 function applyProfile(){for(const b of document.querySelectorAll('[data-profile]')){const active=b.dataset.profile===profile;b.classList.toggle('active',active);b.setAttribute('aria-pressed',String(active));}$('encodingStatus').textContent=profiles[profile].label+' · 原文保留';$('encodingHint').textContent=profiles[profile].detail;}
 function updateTitle(){document.querySelector('.document-card h3').textContent=$('docTitle').value||'未命名';}
-function load(data){const d=validateFile(data);lastBreakSignature=null;view.updateState(EditorState.create({schema,doc:d.doc,plugins:plugins()}));settings=d.settings;profile=d.profile;originals=d.originals;conversionLog=Array.isArray(d.conversionLog)?d.conversionLog:[];$('docTitle').value=d.title;renderFonts();applySettings();applyProfile();updateTitle();syncToolbar();}
+function load(data){const d=validateFile(data);lastBreakSignature=null;breakResettle=0;$('paper').style.minWidth='';view.updateState(EditorState.create({schema,doc:d.doc,plugins:plugins()}));settings=d.settings;profile=d.profile;originals=d.originals;conversionLog=Array.isArray(d.conversionLog)?d.conversionLog:[];$('docTitle').value=d.title;renderFonts();applySettings();applyProfile();updateTitle();syncToolbar();}
 function renderFonts(){const filter=$('fontFilter').value;const list=fonts.filter(f=>filter==='all'||(filter==='pua'?f.hasPUA:f.hasMongolian));const select=$('fontSelect');select.replaceChildren(new Option('Noto Sans Mongolian · 内置','Mori Noto'));const seen=new Set(['Mori Noto']);for(const f of list){if(!f.postscript||seen.has(f.postscript))continue;seen.add(f.postscript);select.add(new Option(f.family+' · '+f.postscript,f.postscript));}if(!seen.has(settings.font))select.add(new Option(settings.font+' · 文档指定',settings.font));$('fontCount').textContent=list.length+' 个字形';select.value=settings.font;}
 function exec(command){if(busy())return;const marks={bold:schema.marks.strong,italic:schema.marks.em,underline:schema.marks.underline,sup:schema.marks.sup,sub:schema.marks.sub};
   if(command==='undo'){undo(view.state,view.dispatch,view);return view.focus();}
@@ -535,7 +565,7 @@ window.moriSmokeTest=async()=>{const checks=[],check=(name,pass)=>checks.push({n
  {
    const long=schema.node('doc',null,Array.from({length:30},(_,i)=>schema.node('paragraph',null,schema.text('ᠮᠣᠩᠭᠣᠯ ᠪᠢᠴᠢᠭ ᠲᠠᠯᠠ ᠨᠤᠲᠤᠭ ᠤᠰᠤ ᠠᠭᠤᠯᠠ᠃ '+String(i+1)))));
    load({format:'mori-document',version:DOC_VERSION,title:'分页书写验证',profile:'2023',settings,doc:long.toJSON()});
-   await new Promise(r=>setTimeout(r,340));
+   await new Promise(r=>setTimeout(r,700));
    const landGeo=pageGeometry(settings.page);
    const frames=document.querySelectorAll('#pageOverlay .page-frame').length;
    const bands=document.querySelectorAll('#pageOverlay .page-gap-band').length;
@@ -550,15 +580,63 @@ window.moriSmokeTest=async()=>{const checks=[],check=(name,pass)=>checks.push({n
      const xs=Array.from(document.querySelectorAll('#pageOverlay .page-frame')).map(m=>parseFloat(m.style.left));
      return xs.length>=2&&xs[0]>=0&&xs.every((v,i)=>i===0||v>xs[i-1]);
    })());
+   pageFrameProbe=(()=>{
+     const frame=document.querySelector('#pageOverlay .page-frame');
+     if(!frame)return null;
+     const rect=frame.getBoundingClientRect();
+     const overlay=$('pageOverlay').getBoundingClientRect();
+     const editor=view.dom.getBoundingClientRect();
+     const paper=$('paper').getBoundingClientRect();
+     return {
+       zoom:Number($('zoom').value)/100,
+       orientation:settings.page.orientation,
+       docMargin:settings.margin,
+       contentWidthPx:Math.round(landGeo.contentWidthPx),
+       contentHeightPx:Math.round(landGeo.contentHeightPx),
+       frame:{left:Math.round(rect.left),top:Math.round(rect.top),w:Math.round(rect.width),h:Math.round(rect.height)},
+       overlay:{left:Math.round(overlay.left),w:Math.round(overlay.width),h:Math.round(overlay.height)},
+       editor:{left:Math.round(editor.left),w:Math.round(editor.width),h:Math.round(editor.height)},
+       paper:{left:Math.round(paper.left),w:Math.round(paper.width),h:Math.round(paper.height)},
+       frameInsetFromPaper:Math.round(rect.left-paper.left),
+       frameInsetFromEditor:Math.round(rect.left-editor.left),
+       framesRendered:Array.from(document.querySelectorAll('#pageOverlay .page-frame')).map(f=>{const r=f.getBoundingClientRect();return{left:Math.round(r.left),right:Math.round(r.right),w:Math.round(r.width)};}),
+       firstBlocks:(()=>{const pag=overlayPagination;if(!pag)return 'no pagination';return pag.pages.map(indexes=>{const b=pag.blocks[indexes[0]];const n=b?view.nodeDOM(b.offset):null;return n&&typeof n.getBoundingClientRect==='function'?Math.round(n.getBoundingClientRect().left):null;});})(),
+       paperRight:Math.round(paper.right),
+       paperMinWidth:$('paper').style.minWidth||'(unset)'
+     };
+   })();
    check('page frames are full page width',(()=>{
      const frames=Array.from(document.querySelectorAll('#pageOverlay .page-frame'));
-     return frames.length>0&&frames.every(f=>Math.abs(parseFloat(f.style.width)-landGeo.contentWidthPx)<1);
+     const pag=overlayPagination;
+     if(!frames.length||!pag)return false;
+     const zoom=Number($('zoom').value)/100;
+     // Compare the RENDERED width, not the style we just set — asserting the style we
+     // wrote back to ourselves would pass no matter how the box actually lays out.
+     const expected=Math.min(landGeo.contentWidthPx,pag.capacity*pag.basePitch)*zoom;
+     return frames.every(frame=>Math.abs(frame.getBoundingClientRect().width-expected)<2);
    })());
-   check('pages sit on a uniform grid',(()=>{
-     const xs=Array.from(document.querySelectorAll('#pageOverlay .page-frame')).map(m=>parseFloat(m.style.left));
-     if(xs.length<2)return true;
-     const pitch=xs[1]-xs[0];
-     return pitch>landGeo.contentWidthPx&&xs.every((v,i)=>i===0||Math.abs((v-xs[i-1])-pitch)<2);
+   check('page frame aligns with its own first block',(()=>{
+     const frames=Array.from(document.querySelectorAll('#pageOverlay .page-frame'));
+     const pag=overlayPagination;
+     if(!frames.length||!pag)return false;
+     return frames.every((frame,index)=>{
+       const first=pag.blocks[pag.pages[index][0]];
+       const node=first?view.nodeDOM(first.offset):null;
+       if(!node||typeof node.getBoundingClientRect!=='function')return false;
+       return Math.abs(frame.getBoundingClientRect().left-node.getBoundingClientRect().left)<2;
+     });
+   })());
+   check('paper is wide enough to hold every page',(()=>{
+     const frames=Array.from(document.querySelectorAll('#pageOverlay .page-frame'));
+     if(!frames.length)return false;
+     const paper=$('paper').getBoundingClientRect();
+     const last=frames[frames.length-1].getBoundingClientRect();
+     return last.right<=paper.right+1;
+   })());
+   check('page frames never overlap',(()=>{
+     const frames=Array.from(document.querySelectorAll('#pageOverlay .page-frame'))
+       .map(f=>f.getBoundingClientRect()).sort((a,b)=>a.left-b.left);
+     return frames.every((rect,index)=>index===0||rect.left>=frames[index-1].right-1);
    })());
    pageGapRect=(()=>{
      const element=view.dom.querySelector('.page-gap');
@@ -691,7 +769,7 @@ window.moriSmokeTest=async()=>{const checks=[],check=(name,pass)=>checks.push({n
   pageExample:{summary:pageSummary(settings.page),totalPages:pagination.totalPages,blocks:pagination.blocks.length,overflow:pagination.overflow.length,
     capacity:pagination.capacity,basePitch:Math.round(pagination.basePitch*10)/10,contentHeightPx:Math.round(pagination.geometry.contentHeightPx),
     sample:pagination.blocks.slice(0,3).map(b=>({length:Math.round(b.length),weight:Math.round(b.weight*100)/100}))},
-  docxAvailable:docx.available,docxProbe,punctuationMetrics,multicolProbe,spacerProbe,baosaoReport,pageGapRect,
+  docxAvailable:docx.available,docxProbe,punctuationMetrics,multicolProbe,spacerProbe,baosaoReport,pageGapRect,pageFrameProbe,
   previewPages,previewDiagnostics,
   boundary:'Smoke tests are not national-standard conformance or vendor IME certification.'};};
 

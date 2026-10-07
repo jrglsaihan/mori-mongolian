@@ -124,12 +124,26 @@ Auto-contrôle natif facultatif (écrit un rapport et une capture d'écran) :
 - **Mise en page et pagination** — A4/A3, paysage/portrait, marges prédéfinies, aperçu de pagination en lecture seule et PDF paginé. La pagination est calculée en mesurant chaque bloc : un titre plus grand occupe donc proportionnellement plus de place.
 - **Import et export DOCX** via un LibreOffice installé localement, appelé en **processus séparé**. Rien n'est lié ni embarqué : les obligations GPL-3.0 de LibreOffice ne s'étendent donc pas à ce projet sous MIT. `MORI_SOFFICE` permet d'indiquer un chemin non standard.
 
+### baosao — le moteur DOCX intégré
+
+DOCX n'est pas un format propriétaire : c'est un conteneur ZIP contenant quelques parties XML. **baosao** écrit ce paquet lui-même, donc **l'export DOCX n'appelle plus aucun convertisseur externe et n'a plus besoin de LibreOffice**.
+
+- `src/baosao/zip.js` — écriture ZIP sans dépendance avec CRC32. Utilise `CompressionStream('deflate-raw')` si disponible, sinon des entrées STORED
+- `src/baosao/ooxml.js` — du modèle de document vers WordprocessingML : paragraphes, titres, gras/italique/souligné, couleur, police et taille, exposant/indice, alignement, retraits, interligne, listes, format de page et marges
+- `src/baosao/index.js` — assemble les dix parties et **les vérifie**
+
+**L'écriture verticale mongole est émise en `<w:textDirection w:val="tbLrV"/>`.** Son homologue `tbRl` est la verticale CJK, où les colonnes vont de droite à gauche ; une assertion empêche la confusion.
+
+Chaque export est d'abord vérifié — répertoire central, parties requises, CRC, bonne formation XML, sens d'écriture — et **rien n'est écrit si la vérification échoue**.
+
+> **Non vérifié** : les notes de compatibilité de Microsoft (MS-OI29500) indiquent que Word interprète `tbLrV` comme une rotation de 90° dans les tableaux. Le fichier respecte ECMA-376, mais **le rendu réel dans Word doit être confirmé sur un vrai Word**.
+
 ## Résultats de vérification
 
 | Élément | Résultat |
 | --- | --- |
-| Tests du cœur | 49 / 49 réussis |
-| Contrôles de l'éditeur natif | 56 / 56 réussis |
+| Tests du cœur | 59 / 59 réussis |
+| Contrôles de l'éditeur natif | 75 / 75 réussis |
 | Déclinaisons de polices installées énumérées | 557 |
 | Polices couvrant les points de code mongols échantillonnés | 44 |
 | Polices couvrant les points de code PUA testés | 47 |

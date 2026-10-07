@@ -8,11 +8,11 @@
   "ready" : true,
   "result" : {
     "baosaoReport" : {
-      "bytes" : 4122,
+      "bytes" : 4121,
       "method" : "deflate-raw",
       "parts" : 10,
       "verified" : {
-        "bytes" : 4122,
+        "bytes" : 4121,
         "checks" : [
           {
             "detail" : "10 个部件",
@@ -289,7 +289,15 @@
         "pass" : true
       },
       {
-        "name" : "pages sit on a uniform grid",
+        "name" : "page frame aligns with its own first block",
+        "pass" : true
+      },
+      {
+        "name" : "paper is wide enough to hold every page",
+        "pass" : true
+      },
+      {
+        "name" : "page frames never overlap",
         "pass" : true
       },
       {
@@ -477,10 +485,64 @@
       "summary" : "A4 横向 · 版心 257×170 mm",
       "totalPages" : 6
     },
+    "pageFrameProbe" : {
+      "contentHeightPx" : 643,
+      "contentWidthPx" : 971,
+      "docMargin" : 48,
+      "editor" : {
+        "h" : 546,
+        "left" : 339,
+        "w" : 1795
+      },
+      "firstBlocks" : [
+        355,
+        1194,
+        2033
+      ],
+      "frame" : {
+        "h" : 546,
+        "left" : 355,
+        "top" : 365,
+        "w" : 814
+      },
+      "frameInsetFromEditor" : 15,
+      "frameInsetFromPaper" : 57,
+      "framesRendered" : [
+        {
+          "left" : 355,
+          "right" : 1168,
+          "w" : 814
+        },
+        {
+          "left" : 1194,
+          "right" : 2008,
+          "w" : 814
+        },
+        {
+          "left" : 2033,
+          "right" : 2847,
+          "w" : 814
+        }
+      ],
+      "orientation" : "landscape",
+      "overlay" : {
+        "h" : 628,
+        "left" : 299,
+        "w" : 2630
+      },
+      "paper" : {
+        "h" : 629,
+        "left" : 298,
+        "w" : 2631
+      },
+      "paperMinWidth" : "3095px",
+      "paperRight" : 2929,
+      "zoom" : 0.84999999999999998
+    },
     "pageGapRect" : {
       "h" : 0,
       "left" : 1153,
-      "w" : 172.5
+      "w" : 25.5
     },
     "previewDiagnostics" : {
       "bodyHTMLLength" : 1339,
@@ -735,7 +797,7 @@
       },
       {
         "label" : "end",
-        "ms" : 2397
+        "ms" : 2752
       }
     ]
   },

@@ -122,12 +122,26 @@ Autocomprobación nativa opcional (escribe un informe y una captura de pantalla)
 - **Configuración de página y paginación** — A4/A3, horizontal/vertical, márgenes predefinidos, vista previa de paginación de solo lectura y PDF paginado. La paginación se calcula midiendo cada bloque, así que un título más grande ocupa proporcionalmente más espacio.
 - **Importación y exportación de DOCX** mediante un LibreOffice instalado localmente, invocado como **proceso separado**. No se enlaza ni se empaqueta nada, por lo que las obligaciones GPL-3.0 de LibreOffice no alcanzan a este proyecto con licencia MIT. `MORI_SOFFICE` permite indicar una ruta no estándar.
 
+### baosao — el motor DOCX integrado
+
+DOCX no es un formato propietario: es un contenedor ZIP con unas cuantas partes XML. **baosao** escribe ese paquete por sí mismo, así que **la exportación a DOCX ya no llama a ningún conversor externo ni necesita LibreOffice**.
+
+- `src/baosao/zip.js` — escritor ZIP sin dependencias con CRC32. Usa `CompressionStream('deflate-raw')` si está disponible y, si no, entradas STORED
+- `src/baosao/ooxml.js` — del modelo de documento a WordprocessingML: párrafos, títulos, negrita/cursiva/subrayado, color, fuente y tamaño, superíndice/subíndice, alineación, sangrías, interlineado, listas, tamaño de página y márgenes
+- `src/baosao/index.js` — ensambla las diez partes y **las verifica**
+
+**La escritura vertical mongola se emite como `<w:textDirection w:val="tbLrV"/>`.** Su pariente `tbRl` es la vertical CJK, donde las columnas van de derecha a izquierda; una aserción evita confundirlas.
+
+Cada exportación se verifica primero — directorio central, partes requeridas, CRC, XML bien formado, dirección de escritura — y **no se escribe nada si la verificación falla**.
+
+> **Sin verificar**: las notas de compatibilidad de Microsoft (MS-OI29500) registran que Word interpreta `tbLrV` como un giro de 90° dentro de tablas. El archivo cumple ECMA-376, pero **el renderizado real en Word debe confirmarse con Word de verdad**.
+
 ## Resultados de verificación
 
 | Elemento | Resultado |
 | --- | --- |
-| Pruebas del núcleo | 49 / 49 superadas |
-| Comprobaciones del editor nativo | 56 / 56 superadas |
+| Pruebas del núcleo | 59 / 59 superadas |
+| Comprobaciones del editor nativo | 75 / 75 superadas |
 | Estilos de fuente instalados enumerados | 557 |
 | Fuentes que cubren los puntos de código mongoles de muestra | 44 |
 | Fuentes que cubren los puntos de código PUA probados | 47 |
