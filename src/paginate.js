@@ -22,35 +22,53 @@ function measureHost(base){
 // so each block is measured as an inline box: its height is the true text length and its
 // width is the line thickness. Heading sizes are applied explicitly so measurement does
 // not depend on stylesheet scope.
+//
+// All blocks are appended first and every rect is read afterwards, so the whole document
+// costs one layout instead of one forced reflow per block — per-block reflow made a
+// 40-block document take seconds and pushed the self-check past its deadline.
 export function measureBlocks(doc,base){
   const host=measureHost(base);
   const serializer=DOMSerializer.fromSchema(schema);
   const basePitch=Math.max(1,base.size*base.leading);
-  const blocks=[];
+  const entries=[];
   doc.forEach((node,offset,index)=>{
     const dom=serializer.serializeNode(node);
     const level=node.type===schema.nodes.heading?node.attrs.level:0;
     const scale=level?(HEADING_SCALE[level]||1):1;
     dom.style.cssText=`display:inline;margin:0;padding:0;border:0;font-size:${(base.size*scale).toFixed(2)}px;`+
       `font-weight:${level?600:400};line-height:${base.leading};`;
-    host.replaceChildren(dom);
-    const rect=dom.getBoundingClientRect();
-    const thickness=Math.max(1,rect.width);
-    blocks.push({index,offset,node,
-      length:Math.max(0,rect.height),
-      weight:(thickness+base.size*BLOCK_GAP_EM)/basePitch});
+    entries.push({dom,node,offset,index});
   });
+  if(!entries.length)return [];
+  host.replaceChildren(...entries.map(entry=>entry.dom));
+  const rects=entries.map(entry=>entry.dom.getBoundingClientRect());
   host.replaceChildren();
-  return blocks;
+  return entries.map((entry,index)=>({
+    index:entry.index,offset:entry.offset,node:entry.node,
+    length:Math.max(0,rects[index].height),
+    weight:(Math.max(1,rects[index].width)+base.size*BLOCK_GAP_EM)/basePitch
+  }));
+}
+let cachedPagination=null;
+function settingsSignature(settings){
+  const page=settings.page;
+  return [settings.font,settings.size,settings.leading,page.size,page.orientation,
+    page.margins.top,page.margins.right,page.margins.bottom,page.margins.left].join('|');
 }
 export function computePagination(doc,settings){
+  const signature=settingsSignature(settings);
+  if(cachedPagination&&cachedPagination.doc===doc&&cachedPagination.signature===signature){
+    return cachedPagination.value;
+  }
   const geometry=pageGeometry(settings.page);
   const base={font:settings.font,size:settings.size,leading:settings.leading};
   const blocks=measureBlocks(doc,base);
   const basePitch=settings.size*settings.leading;
   const capacity=Math.max(1,Math.floor(geometry.contentWidthPx/basePitch));
   const result=paginateBlocks(blocks,{contentHeight:geometry.contentHeightPx,capacity});
-  return {...result,blocks,geometry,capacity,basePitch};
+  const value={...result,blocks,geometry,capacity,basePitch};
+  cachedPagination={doc,signature,value};
+  return value;
 }
 export function blocksToHTML(blocks){
   const serializer=DOMSerializer.fromSchema(schema);

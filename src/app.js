@@ -1,4 +1,4 @@
-import {EditorState,TextSelection,AllSelection,Plugin} from 'prosemirror-state';
+import {EditorState,TextSelection,AllSelection,Plugin,PluginKey} from 'prosemirror-state';
 import fallbackFont from '../vendor/NotoSansMongolian-Regular.ttf';
 import {EditorView,Decoration,DecorationSet} from 'prosemirror-view';
 import {DOMSerializer,DOMParser as PMDOMParser} from 'prosemirror-model';
@@ -9,11 +9,12 @@ import {wrapInList,splitListItem,liftListItem} from 'prosemirror-schema-list';
 import {schema,profiles,plainText,textDocument,inspectText,decodeBytes,b64ToBytes,bytesToB64,validateFile,initConverter,convertText,escapeHTML,cssString,
   pageGeometry,pageSummary,normalizePage,DEFAULT_PAGE,DOC_VERSION,safeFont,safeSize,ALIGNMENTS,LEADINGS,FONT_SIZES,HEADING_SCALE,punctuationRuns} from './core.js';
 import {computePagination,paginatedHTML,blocksToHTML} from './paginate.js';
+import {buildDOCX,verifyDOCX,describe as describeBaosao,BAOSAO_VERSION} from './baosao/index.js';
 
 const $=id=>document.getElementById(id),native=!!window.webkit?.messageHandlers?.mori;
 let seq=0,pending=new Map(),dirty=false,revision=0,draftTimer,composing=false,fonts=[],profile='2023',originals=[],converterVersion='unavailable';
 let settings={font:'Mori Noto',size:28,leading:1.8,alignment:'start',margin:48,punctShift:-0.15,punctScale:1,page:{...DEFAULT_PAGE,margins:{...DEFAULT_PAGE.margins}}};
-let latestSavedRevision=0,conversionLog=[],docx={available:false,path:null},lastPagination=null,previewPages=0,previewDiagnostics=null,docxProbe=null,punctuationMetrics=null,multicolProbe=null;
+let latestSavedRevision=0,conversionLog=[],docx={available:false,path:null},lastPagination=null,previewPages=0,previewDiagnostics=null,docxProbe=null,punctuationMetrics=null,multicolProbe=null,spacerProbe=null,baosaoReport=null,pageGapRect=null;
 
 window.moriNativeReply=({id,result,error})=>{const p=pending.get(id);if(!p)return;pending.delete(id);error?p.reject(new Error(error)):p.resolve(result);};
 function bridge(action,payload={}){if(!native)return Promise.reject(new Error('此功能请在 Mori Mac 应用中使用。浏览器仅提供编辑预览。'));return new Promise((resolve,reject)=>{const id=String(++seq);pending.set(id,{resolve,reject});window.webkit.messageHandlers.mori.postMessage({id,action,payload});});}
@@ -26,6 +27,28 @@ function serialize(){return {format:'mori-document',version:DOC_VERSION,title:$(
 function documentJSON(data,pretty=false){const content=JSON.stringify(data,null,pretty?2:undefined);if(new TextEncoder().encode(content).length>64*1024*1024)throw new Error('文档超过64MB，无法安全保存和重开。请分拆内容。');return content;}
 async function saveDraft(){if(!native||composing)return;const r=revision;try{await bridge('draftSave',{content:documentJSON(serialize())});if(r===revision)$('saveState').textContent=dirty?'恢复副本已备份 · 请保存文档':'文档已保存';}catch(e){$('saveState').textContent='恢复副本备份失败';fail(e);}}
 
+const PAGE_GAP_PX=30;
+let pageBreakPositions=[];
+// Each paragraph in vertical-lr starts at the top of its own column, so a page
+// boundary always lands on a paragraph start. Inserting a zero-height block of the
+// gap's width at that position consumes real layout space, which is what actually
+// separates the pages — an overlay could never push content aside.
+function pageBreakPlugin(){
+  return new Plugin({key:new PluginKey('moriPageBreak'),props:{decorations(state){
+    if(!pageBreakPositions.length)return null;
+    const decorations=[];
+    for(const position of pageBreakPositions){
+      if(position<=0||position>=state.doc.content.size)continue;
+      decorations.push(Decoration.widget(position,()=>{
+        const element=document.createElement('div');
+        element.className='page-gap';
+        element.setAttribute('aria-hidden','true');
+        return element;
+      },{side:-1}));
+    }
+    return DecorationSet.create(state.doc,decorations);
+  }}});
+}
 function punctuationPlugin(){
   return new Plugin({props:{decorations(state){
     const decorations=[];
@@ -38,7 +61,7 @@ function punctuationPlugin(){
     return DecorationSet.create(state.doc,decorations);
   }}});
 }
-function plugins(){return [history(),punctuationPlugin(),keymap({
+function plugins(){return [history(),punctuationPlugin(),pageBreakPlugin(),keymap({
   'Mod-z':undo,'Mod-Shift-z':redo,'Mod-y':redo,
   'Mod-b':toggleMark(schema.marks.strong),'Mod-i':toggleMark(schema.marks.em),'Mod-u':toggleMark(schema.marks.underline),
   'Mod-.':toggleMark(schema.marks.sup),'Mod-,':toggleMark(schema.marks.sub),
@@ -160,36 +183,67 @@ function applySettings(){
   $('paper').style.zoom=Number($('zoom').value)/100;
   scheduleOverlay();
 }
-let overlayTimer=null,overlayPagination=null;
+let overlayTimer=null,overlayPagination=null,lastBreakSignature=null;
 function scheduleOverlay(){clearTimeout(overlayTimer);overlayTimer=setTimeout(renderPageOverlay,160);}
+function refreshPageBreaks(positions){
+  // renderPageOverlay runs from dispatchTransaction, so dispatching here can re-enter.
+  // One dispatch per distinct position set is enough: the decoration plugin rebuilds
+  // from pageBreakPositions on every state change anyway.
+  const signature=positions.join(',');
+  if(signature===lastBreakSignature)return;
+  lastBreakSignature=signature;
+  pageBreakPositions=positions;
+  view.dispatch(view.state.tr.setMeta('moriPageBreak',true));
+}
 function renderPageOverlay(){
   const host=$('pageOverlay');if(!host)return;
   const guides=$('pageGuides')?$('pageGuides').checked:false;
-  if(!guides){host.replaceChildren();overlayPagination=null;return;}
   const geometry=pageGeometry(settings.page);
+  if(!guides){
+    host.replaceChildren();
+    overlayPagination=null;
+    refreshPageBreaks([]);
+    return;
+  }
   const pag=computePagination(view.state.doc,settings);
   overlayPagination=pag;
   const editorRect=view.dom.getBoundingClientRect();
+  const positions=pag.pages.slice(1).map(indexes=>pag.blocks[indexes[0]]&&pag.blocks[indexes[0]].offset).filter(position=>typeof position==='number');
+  refreshPageBreaks(positions);
   const frag=document.createDocumentFragment();
   pag.pages.forEach((indexes,pageIndex)=>{
     const first=pag.blocks[indexes[0]];
     if(!first)return;
     const node=view.nodeDOM(first.offset);
     if(!node||typeof node.getBoundingClientRect!=='function')return;
-    const rect=node.getBoundingClientRect();
-    const marker=document.createElement('div');
-    marker.className='page-boundary';
-    marker.style.left=(rect.left-editorRect.left).toFixed(1)+'px';
-    marker.style.height=geometry.contentHeightPx.toFixed(1)+'px';
-    marker.innerHTML='<span class="page-boundary-label">第 '+(pageIndex+1)+' 页</span>';
-    frag.appendChild(marker);
+    const start=node.getBoundingClientRect().left-editorRect.left;
+    const next=pag.pages[pageIndex+1]&&pag.blocks[pag.pages[pageIndex+1][0]];
+    const nextNode=next?view.nodeDOM(next.offset):null;
+    const end=nextNode&&typeof nextNode.getBoundingClientRect==='function'
+      ? nextNode.getBoundingClientRect().left-editorRect.left-PAGE_GAP_PX
+      : Math.max(start+40,editorRect.width);
+    const frame=document.createElement('div');
+    frame.className='page-frame';
+    frame.style.left=start.toFixed(1)+'px';
+    frame.style.width=Math.max(24,end-start).toFixed(1)+'px';
+    frame.style.height=geometry.contentHeightPx.toFixed(1)+'px';
+    frame.innerHTML='<span class="page-frame-label">第 '+(pageIndex+1)+' 页</span>';
+    frag.appendChild(frame);
+    if(nextNode){
+      const band=document.createElement('div');
+      band.className='page-gap-band';
+      band.style.left=end.toFixed(1)+'px';
+      band.style.width=PAGE_GAP_PX+'px';
+      band.style.height=geometry.contentHeightPx.toFixed(1)+'px';
+      frag.appendChild(band);
+    }
   });
   host.replaceChildren(frag);
 }
 function marginPreset(m){const values=[m.top,m.right,m.bottom,m.left];const same=values.every(v=>v===values[0]);if(!same)return 'custom';return values[0]<=14?'12':values[0]>=28?'30':'20';}
 function applyProfile(){for(const b of document.querySelectorAll('[data-profile]')){const active=b.dataset.profile===profile;b.classList.toggle('active',active);b.setAttribute('aria-pressed',String(active));}$('encodingStatus').textContent=profiles[profile].label+' · 原文保留';$('encodingHint').textContent=profiles[profile].detail;}
 function updateTitle(){document.querySelector('.document-card h3').textContent=$('docTitle').value||'未命名';}
-function load(data){const d=validateFile(data);view.updateState(EditorState.create({schema,doc:d.doc,plugins:plugins()}));settings=d.settings;profile=d.profile;originals=d.originals;conversionLog=Array.isArray(d.conversionLog)?d.conversionLog:[];$('docTitle').value=d.title;renderFonts();applySettings();applyProfile();updateTitle();syncToolbar();}
+function load(data){const d=validateFile(data);lastBreakSignature=null;view.updateState(EditorState.create({schema,doc:d.doc,plugins:plugins()}));settings=d.settings;profile=d.profile;originals=d.originals;conversionLog=Array.isArray(d.conversionLog)?d.conversionLog:[];$('docTitle').value=d.title;renderFonts();applySettings();applyProfile();updateTitle();syncToolbar();}
 function renderFonts(){const filter=$('fontFilter').value;const list=fonts.filter(f=>filter==='all'||(filter==='pua'?f.hasPUA:f.hasMongolian));const select=$('fontSelect');select.replaceChildren(new Option('Noto Sans Mongolian · 内置','Mori Noto'));const seen=new Set(['Mori Noto']);for(const f of list){if(!f.postscript||seen.has(f.postscript))continue;seen.add(f.postscript);select.add(new Option(f.family+' · '+f.postscript,f.postscript));}if(!seen.has(settings.font))select.add(new Option(settings.font+' · 文档指定',settings.font));$('fontCount').textContent=list.length+' 个字形';select.value=settings.font;}
 function exec(command){if(busy())return;const marks={bold:schema.marks.strong,italic:schema.marks.em,underline:schema.marks.underline,sup:schema.marks.sup,sub:schema.marks.sub};
   if(command==='undo'){undo(view.state,view.dispatch,view);return view.focus();}
@@ -230,13 +284,20 @@ async function exportText(){if(busy())return;showModal('导出文档','<p>文本
   $('exportHTML').onclick=run(async()=>{hideModal();const content=paginatedHTML(view.state.doc,settings,{title:$('docTitle').value,print:false}).html;if(native)await bridge('save',{name:$('docTitle').value,content,kind:'html'});else download($('docTitle').value+'.html',content,'text/html');});
   $('exportPDF').onclick=run(async()=>{hideModal();await print();});}
 
-async function exportDOCX(){if(busy())return;
-  if(!docx.available){showModal('DOCX 导出不可用',`<p>未检测到本机安装的 LibreOffice，无法进行 DOCX 转换。</p><p class="field-note">Mori 不内置 DOCX 引擎（避免 GPL 许可与体积问题），改为调用本机已安装的 LibreOffice 作为<strong>独立进程</strong>完成转换。安装 LibreOffice 后重启 Mori 即可启用。</p>`);return;}
-  await document.fonts.ready;const built=buildPrintDocument();
-  if(!await confirm('导出为 DOCX（经 LibreOffice 转换）',`将通过本机 LibreOffice 独立进程转换，共 ${built.totalPages} 页。\n\n注意：DOCX 格式对竖排书写方向与蒙古文字形的支持有限，转换结果可能丢失竖排方向或字形效果。导出后请用 Word 或 LibreOffice 打开核对，不要以此结果替换唯一原件。`))return;
-  const result=await bridge('docxExport',{html:built.html,name:$('docTitle').value||'未命名'});
+async function exportDOCX(){
+  if(busy())return;
+  await document.fonts.ready;
+  const built=await buildDOCX(view.state.doc,settings,{title:$('docTitle').value||'未命名'});
+  const verified=await verifyDOCX(built.bytes);
+  const failed=verified.checks.filter(check=>!check.pass).map(check=>check.name);
+  baosaoReport={method:built.method,parts:built.partNames.length,bytes:built.bytes.length,verified};
+  if(!verified.ok)throw new Error('baosao 自检未通过：'+failed.join('、'));
+  if(!await confirm('导出为 DOCX（baosao 自研）',
+    `由 baosao 直接生成，不依赖 LibreOffice。\n\n${built.partNames.length} 个部件 · ${(built.bytes.length/1024).toFixed(1)} KB · 压缩方式 ${built.method}\n蒙古文竖排写入 <w:textDirection w:val="tbLrV"/>。\n\n注意：Word 对 tbLrV 的实际渲染尚未实机验证。导出后请用 Word 打开，确认竖排是直立文字而不是整体旋转 90°。`))return;
+  const result=await bridge('save',{name:$('docTitle').value||'未命名',base64:bytesToB64(built.bytes),kind:'docx'});
   if(result?.cancelled)return;
-  toast('已导出 '+result.name+'（请核对竖排方向是否保留）');}
+  toast(`已导出 ${result.name} · baosao 自检 ${verified.checks.length} 项通过`);
+}
 
 async function importDOCX(){if(busy()||!await guardUnsaved())return;
   if(!docx.available){toast('未检测到本机 LibreOffice，无法导入 DOCX。');return;}
@@ -252,10 +313,10 @@ async function importDOCX(){if(busy()||!await guardUnsaved())return;
   toast('已导入。请核对蒙古文原文与竖排方向；表格/图片/页眉未导入。');}
 
 function compatibility(){const s=inspectText(plainText(view.state.doc));const selected=fonts.find(f=>f.postscript===settings.font);
-  showModal('兼容性与实现边界',`<div class="compat-grid"><section><h3>已实现</h3><ul><li>竖排富文本：上 → 下，列从左 → 右</li><li>选区级字体与字号、粗斜下划线、上标下标、文字颜色</li><li>多级标题 H1–H3、段落缩进与首行缩进、段落行距、四种对齐</li><li>页面设置（A4/A3、横纵向、页边距）与分页预览、分页 PDF 输出</li><li>本机字体枚举；内置 OFL Noto 兜底字体</li><li>Unicode / UTF-8 / UTF-16 原文读写与控制符保留</li><li>蒙科立 MenkShape / MenkLetter 显式转换预览</li><li>本机输入法组字事件接入，组字期间禁止转换</li><li>DOCX 导入导出（经本机 LibreOffice 独立进程）</li></ul></section><section><h3>尚未实现或未认证</h3><ul><li>GB/T 25914-2023 全项字形符合性</li><li>2010 ↔ 2023 自动字形约定迁移</li><li>GB18030-2022 全项及修改单符合性</li><li>表格、图片、页眉页脚、页码域、脚注</li><li>修订、批注、样式集、目录</li><li>页内直接编辑（当前分页为只读预览）</li><li>超过单页容量的超长段落自动拆分</li><li>托忒、锡伯、满文完整转换</li><li>各企业输入法实机认证</li></ul></section></div>
+  showModal('兼容性与实现边界',`<div class="compat-grid"><section><h3>已实现</h3><ul><li>竖排富文本：上 → 下，列从左 → 右</li><li>选区级字体与字号、粗斜下划线、上标下标、文字颜色</li><li>多级标题 H1–H3、段落缩进与首行缩进、段落行距、四种对齐</li><li>页面设置（A4/A3、横纵向、页边距）与<strong>分页书写</strong>：画布高度等于版心，一列即一页，页间有真实空白间隔</li><li><strong>baosao 自研 DOCX 导出</strong>：直接生成 OOXML 包，不依赖 LibreOffice，竖排写入 tbLrV</li><li>本机字体枚举；内置 OFL Noto 兜底字体</li><li>Unicode / UTF-8 / UTF-16 原文读写与控制符保留</li><li>蒙科立 MenkShape / MenkLetter 显式转换预览</li><li>本机输入法组字事件接入，组字期间禁止转换</li></ul></section><section><h3>尚未实现或未认证</h3><ul><li>GB/T 25914-2023 全项字形符合性</li><li>2010 ↔ 2023 自动字形约定迁移</li><li>GB18030-2022 全项及修改单符合性</li><li>表格、图片、页眉页脚、页码域、脚注</li><li>修订、批注、样式集、目录</li><li><strong>Word 对 tbLrV 的实际渲染未经实机验证</strong></li><li>自研 DOCX 导入（导入仍走本机 LibreOffice）</li><li>托忒、锡伯、满文完整转换</li><li>各企业输入法实机认证</li></ul></section></div>
   <p>当前私用区字符：${s.pua}；控制字符：${s.controls}。${selected?'当前字体蒙古文样本覆盖：'+(selected.hasMongolian?'通过':'未通过'):'当前使用内置字体或文档指定字体。'} 覆盖样本仅检查码位，不代表字形标准认证。</p>
-  <p class="field-note">分页为按块测量后的排版结果：单个段落超过单页容量时不会自动拆分，会单独成页并提示裁切风险。</p>
-  <p class="field-note">DOCX 转换由本机 LibreOffice 以独立进程执行（不链接、不打包），因此 GPL 许可不影响本项目的 MIT 授权。未安装时功能置灰。</p>
+  <p class="field-note">分页按块测量：单个段落超过单页容量时不会拆分，会单独成页并提示裁切风险。页边界落在段落起点上，因此页间空白是真实布局空间。</p>
+  <p class="field-note"><strong>${escapeHTML(describeBaosao())}</strong>。baosao 自行生成 ZIP 与全部 OOXML 部件，导出不经过任何外部转换器，因此不受 LibreOffice 的 GPL 许可影响。DOCX <strong>导入</strong>仍调用本机 LibreOffice（独立进程），未安装则置灰。</p>
   <p class="field-note">转换引擎：Satsrag/mongol-convert ${escapeHTML(converterVersion)}（Apache-2.0）；编辑引擎：ProseMirror（MIT）；Noto Sans Mongolian（SIL OFL 1.1）。未捆绑商业字体、词库或输入法。</p>
   <div class="modal-actions"><button id="exportOriginal" class="button">导出首个导入原始文件</button></div>`);
   $('exportOriginal').disabled=!originals.length;
@@ -326,6 +387,7 @@ document.addEventListener('keydown',e=>{if((e.metaKey||e.ctrlKey)&&['s','o','p',
 window.addEventListener('beforeunload',e=>{if(dirty&&!native){e.preventDefault();e.returnValue='';}});
 
 window.moriSmokeTest=async()=>{const checks=[],check=(name,pass)=>checks.push({name,pass:!!pass});const before=serialize();const original=plainText(view.state.doc);
+ const marks=[];const mark=label=>marks.push({label,at:Date.now()});mark('start');
  check('vertical-lr writing mode',getComputedStyle(view.dom).writingMode==='vertical-lr');
  check('left-to-right direction',getComputedStyle(view.dom).direction==='ltr');
  check('fallback font loaded',document.fonts.check('28px "Mori Noto"'));
@@ -457,28 +519,82 @@ window.moriSmokeTest=async()=>{const checks=[],check=(name,pass)=>checks.push({n
    host.remove();
  }
  {
-   const long=schema.node('doc',null,Array.from({length:30},(_,i)=>schema.node('paragraph',null,schema.text('ᠮᠣᠩᠭᠣᠯ ᠪᠢᠴᠢᠭ ᠲᠠᠯ᠎ᠠ ᠨᠤᠲᠤᠭ ᠤᠰᠤ ᠠᠭᠤᠯᠠ᠃ '+String(i+1)))));
+   const long=schema.node('doc',null,Array.from({length:30},(_,i)=>schema.node('paragraph',null,schema.text('ᠮᠣᠩᠭᠣᠯ ᠪᠢᠴᠢᠭ ᠲᠠᠯᠠ ᠨᠤᠲᠤᠭ ᠤᠰᠤ ᠠᠭᠤᠯᠠ᠃ '+String(i+1)))));
    load({format:'mori-document',version:DOC_VERSION,title:'分页书写验证',profile:'2023',settings,doc:long.toJSON()});
-   await new Promise(r=>setTimeout(r,320));
+   await new Promise(r=>setTimeout(r,340));
    const landGeo=pageGeometry(settings.page);
-   const boundaries=document.querySelectorAll('#pageOverlay .page-boundary').length;
-   const labels=Array.from(document.querySelectorAll('#pageOverlay .page-boundary-label')).map(n=>n.textContent);
+   const frames=document.querySelectorAll('#pageOverlay .page-frame').length;
+   const bands=document.querySelectorAll('#pageOverlay .page-gap-band').length;
+   const gaps=view.dom.querySelectorAll('.page-gap').length;
+   const labels=Array.from(document.querySelectorAll('#pageOverlay .page-frame-label')).map(n=>n.textContent);
    check('editor canvas height equals page content height',Math.abs(parseFloat(view.dom.style.height)-landGeo.contentHeightPx)<1);
-   check('page boundaries drawn while editing',boundaries>=2);
-   check('page boundaries are numbered',labels.length===boundaries&&labels[0]==='第 1 页');
-   check('page boundaries advance left to right',(()=>{
-     const xs=Array.from(document.querySelectorAll('#pageOverlay .page-boundary')).map(m=>parseFloat(m.style.left));
-     return xs.length>=2&&xs[0]>0&&xs.every((v,i)=>i===0||v>xs[i-1]);
+   check('every page gets a frame',frames>=2);
+   check('page frames are numbered',labels.length===frames&&labels[0]==='第 1 页');
+   check('page separation consumes real layout space',gaps===frames-1);
+   check('gap band drawn between pages',bands===frames-1);
+   check('pages advance left to right',(()=>{
+     const xs=Array.from(document.querySelectorAll('#pageOverlay .page-frame')).map(m=>parseFloat(m.style.left));
+     return xs.length>=2&&xs[0]>=0&&xs.every((v,i)=>i===0||v>xs[i-1]);
    })());
+   pageGapRect=(()=>{
+     const element=view.dom.querySelector('.page-gap');
+     if(!element)return null;
+     const rect=element.getBoundingClientRect();
+     return {w:Math.round(rect.width*10)/10,h:Math.round(rect.height*10)/10,left:Math.round(rect.left)};
+   })();
+   check('gap really shifts following content',!!pageGapRect&&pageGapRect.w>=20);
    settings.page.orientation='portrait';applySettings();
    await new Promise(r=>setTimeout(r,320));
    const portGeo=pageGeometry(settings.page);
-   const portBoundaries=document.querySelectorAll('#pageOverlay .page-boundary').length;
+   const portFrames=document.querySelectorAll('#pageOverlay .page-frame').length;
    check('portrait canvas follows page orientation',Math.abs(parseFloat(view.dom.style.height)-portGeo.contentHeightPx)<1);
    check('portrait content box is taller than wide',portGeo.contentHeightPx>portGeo.contentWidthPx);
-   check('portrait repaginates',portBoundaries>=2&&portBoundaries!==boundaries);
+   check('portrait repaginates',portFrames>=2&&portFrames!==frames);
    settings.page.orientation='landscape';applySettings();
    await new Promise(r=>setTimeout(r,200));
+ }
+ {
+   const host=document.createElement('div');
+   host.style.cssText='position:absolute;left:-100000px;top:0;width:600px;height:200px;writing-mode:vertical-lr;font-size:14px;line-height:1.6';
+   const blocks=[];
+   for(let i=0;i<8;i++){
+     const d=document.createElement('div');
+     d.textContent='ᠮᠣᠩᠭᠣᠯ ᠪᠢᠴᠢᠭ '+(i+1);
+     d.style.cssText='margin:0 0 0 8px';
+     blocks.push(d);host.append(d);
+   }
+   document.body.appendChild(host);
+   await new Promise(r=>requestAnimationFrame(()=>requestAnimationFrame(r)));
+   const hr=host.getBoundingClientRect();
+   const measure=list=>list.map((el,i)=>{const r=el.getBoundingClientRect();return{i,left:Math.round(r.left-hr.left),top:Math.round(r.top-hr.top),w:Math.round(r.width),h:Math.round(r.height)};});
+   const before=measure(blocks);
+   // Now force a break before block 5 and see where it lands.
+   const spacer=document.createElement('div');
+   spacer.style.cssText='break-before:column;height:0;width:26px';
+   host.insertBefore(spacer,blocks[5]);
+   await new Promise(r=>requestAnimationFrame(()=>requestAnimationFrame(r)));
+   const after=measure(blocks);
+   const hostRect2=host.getBoundingClientRect();
+   spacerProbe={
+     host:{w:Math.round(hr.width),h:Math.round(hr.height)},
+     columnsBefore:new Set(before.map(b=>b.left)).size,
+     columnsAfter:new Set(after.map(b=>b.left)).size,
+     before,after,
+     spacerRect:(()=>{const r=spacer.getBoundingClientRect();return{left:Math.round(r.left-hostRect2.left),top:Math.round(r.top-hostRect2.top),w:Math.round(r.width),h:Math.round(r.height)};})(),
+     block5Before:before[5],block5After:after[5],
+     forcedBreak:after[5].left>before[5].left&&after[5].top<=before[5].top
+   };
+   host.remove();
+ }
+ {
+   const built=await buildDOCX(view.state.doc,settings,{title:'baosao 自检'});
+   const verified=await verifyDOCX(built.bytes);
+   baosaoReport={method:built.method,parts:built.partNames.length,bytes:built.bytes.length,verified};
+   check('baosao produces a DOCX package',built.bytes.length>1000&&built.partNames.length>=10);
+   check('baosao package verifies',verified.ok===true);
+   check('baosao emits Mongolian vertical direction',verified.checks.some(c=>c.name==='Mongolian vertical direction emitted'&&c.pass));
+   check('baosao never emits CJK vertical direction',verified.checks.some(c=>c.name==='CJK vertical direction not used'&&c.pass));
+   check('baosao XML parts are well formed',verified.checks.every(c=>c.pass||c.name.indexOf('XML')<0));
  }
  load(before);dirty=false;clearTimeout(draftTimer);
  if(native)await bridge('dirty',{dirty:false});
@@ -544,13 +660,14 @@ window.moriSmokeTest=async()=>{const checks=[],check=(name,pass)=>checks.push({n
  $('saveState').textContent='本地工作区 · 离线就绪';
  view.dispatch(view.state.tr.setSelection(TextSelection.atStart(view.state.doc)));view.dom.blur();
  await document.fonts.ready;
- return {ok:checks.every(c=>c.pass),checks,
+ mark('end');
+ return {ok:checks.every(c=>c.pass),checks,timings:marks.map((entry,index)=>({label:entry.label,ms:index?entry.at-marks[index-1].at:0})),
   fonts:fonts.filter(f=>f.hasMongolian).map(f=>f.family).filter((v,i,a)=>a.indexOf(v)===i),
   conversionExample:{source:'ᠮᠣᠩᠭᠣᠯ',privateUse:menk.text,result:back.text,warnings:back.warnings},
   pageExample:{summary:pageSummary(settings.page),totalPages:pagination.totalPages,blocks:pagination.blocks.length,overflow:pagination.overflow.length,
     capacity:pagination.capacity,basePitch:Math.round(pagination.basePitch*10)/10,contentHeightPx:Math.round(pagination.geometry.contentHeightPx),
     sample:pagination.blocks.slice(0,3).map(b=>({length:Math.round(b.length),weight:Math.round(b.weight*100)/100}))},
-  docxAvailable:docx.available,docxProbe,punctuationMetrics,multicolProbe,
+  docxAvailable:docx.available,docxProbe,punctuationMetrics,multicolProbe,spacerProbe,baosaoReport,pageGapRect,
   previewPages,previewDiagnostics,
   boundary:'Smoke tests are not national-standard conformance or vendor IME certification.'};};
 

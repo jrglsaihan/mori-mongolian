@@ -137,7 +137,7 @@
         <button class="tool-button" type="button" data-action="pagePreview"><svg class="icon" aria-hidden="true"><use href="#i-pages"/></svg><span>分页预览</span></button>
         <span class="toolbar-divider" aria-hidden="true"></span>
         <button class="tool-button" type="button" data-action="importDOCX"><svg class="icon" aria-hidden="true"><use href="#i-docx"/></svg><span>导入 DOCX</span></button>
-        <button class="tool-button" type="button" data-action="exportDOCX"><svg class="icon" aria-hidden="true"><use href="#i-export"/></svg><span>导出 DOCX</span></button>
+        <button class="tool-button" type="button" data-action="exportDOCX" title="由 baosao 自研引擎直接生成，不依赖 LibreOffice"><svg class="icon" aria-hidden="true"><use href="#i-export"/></svg><span>导出 DOCX · baosao</span></button>
         <span id="docxState" class="docx-state">检测中…</span>
         <label class="checkbox-field" for="guides"><input id="guides" type="checkbox"><span>显示版心辅助线</span></label>
       </div>
@@ -230,8 +230,8 @@
             <p id="pageInfoText" class="encoding-hint">纸张、方向与页边距在「页面布局」标签中调整。编辑画布的高度等于页面版心，因此一列文字即一页。</p>
             <label class="checkbox-field" for="pageGuides"><input id="pageGuides" type="checkbox" checked><span>显示分页边界与页码</span></label>
             <button id="pagePreviewOpen" class="inspector-button" type="button" data-action="pagePreview"><svg class="icon" aria-hidden="true"><use href="#i-pages"/></svg><span>分页预览</span><svg class="icon trailing-icon" aria-hidden="true"><use href="#i-chevron"/></svg></button>
-            <button id="docxImportOpen" class="inspector-button" type="button" data-action="importDOCX"><svg class="icon" aria-hidden="true"><use href="#i-docx"/></svg><span>导入 DOCX</span><svg class="icon trailing-icon" aria-hidden="true"><use href="#i-chevron"/></svg></button>
-            <button id="docxExportOpen" class="inspector-button" type="button" data-action="exportDOCX"><svg class="icon" aria-hidden="true"><use href="#i-export"/></svg><span>导出 DOCX</span><svg class="icon trailing-icon" aria-hidden="true"><use href="#i-chevron"/></svg></button>
+            <button id="docxImportOpen" class="inspector-button" type="button" data-action="importDOCX"><svg class="icon" aria-hidden="true"><use href="#i-docx"/></svg><span>导入 DOCX（需 LibreOffice）</span><svg class="icon trailing-icon" aria-hidden="true"><use href="#i-chevron"/></svg></button>
+            <button id="docxExportOpen" class="inspector-button" type="button" data-action="exportDOCX"><svg class="icon" aria-hidden="true"><use href="#i-export"/></svg><span>导出 DOCX · baosao 自研</span><svg class="icon trailing-icon" aria-hidden="true"><use href="#i-chevron"/></svg></button>
           </section>
           <section class="inspector-section" aria-labelledby="encodingHeading">
             <div class="section-heading"><h3 id="encodingHeading">编码与兼容</h3><span class="status-dot" aria-hidden="true"></span></div>

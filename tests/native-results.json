@@ -7,6 +7,69 @@
   "puaFontFaceCount" : 47,
   "ready" : true,
   "result" : {
+    "baosaoReport" : {
+      "bytes" : 4122,
+      "method" : "deflate-raw",
+      "parts" : 10,
+      "verified" : {
+        "bytes" : 4122,
+        "checks" : [
+          {
+            "detail" : "10 个部件",
+            "name" : "zip central directory readable",
+            "pass" : true
+          },
+          {
+            "detail" : "齐全",
+            "name" : "all required parts present",
+            "pass" : true
+          },
+          {
+            "detail" : "[Content_Types].xml,_rels\/.rels,word\/document.xml,word\/styles.xml,word\/settings.xml,word\/numbering.xml,word\/fontTable.xml,word\/_rels\/document.xml.rels,docProps\/core.xml,docProps\/app.xml",
+            "name" : "stored part CRCs match",
+            "pass" : true
+          },
+          {
+            "detail" : "7537 字符",
+            "name" : "document.xml present and non-empty",
+            "pass" : true
+          },
+          {
+            "detail" : "tbLrV",
+            "name" : "Mongolian vertical direction emitted",
+            "pass" : true
+          },
+          {
+            "detail" : "未误用 tbRl",
+            "name" : "CJK vertical direction not used",
+            "pass" : true
+          },
+          {
+            "detail" : "",
+            "name" : "page size in twips",
+            "pass" : true
+          },
+          {
+            "detail" : "",
+            "name" : "content types declare main document",
+            "pass" : true
+          },
+          {
+            "detail" : "",
+            "name" : "relationships resolve document parts",
+            "pass" : true
+          },
+          {
+            "detail" : "",
+            "name" : "every XML part is well formed",
+            "pass" : true
+          }
+        ],
+        "method" : "deflate-raw",
+        "ok" : true,
+        "parts" : 10
+      }
+    },
     "boundary" : "Smoke tests are not national-standard conformance or vendor IME certification.",
     "checks" : [
       {
@@ -202,15 +265,27 @@
         "pass" : true
       },
       {
-        "name" : "page boundaries drawn while editing",
+        "name" : "every page gets a frame",
         "pass" : true
       },
       {
-        "name" : "page boundaries are numbered",
+        "name" : "page frames are numbered",
         "pass" : true
       },
       {
-        "name" : "page boundaries advance left to right",
+        "name" : "page separation consumes real layout space",
+        "pass" : true
+      },
+      {
+        "name" : "gap band drawn between pages",
+        "pass" : true
+      },
+      {
+        "name" : "pages advance left to right",
+        "pass" : true
+      },
+      {
+        "name" : "gap really shifts following content",
         "pass" : true
       },
       {
@@ -223,6 +298,26 @@
       },
       {
         "name" : "portrait repaginates",
+        "pass" : true
+      },
+      {
+        "name" : "baosao produces a DOCX package",
+        "pass" : true
+      },
+      {
+        "name" : "baosao package verifies",
+        "pass" : true
+      },
+      {
+        "name" : "baosao emits Mongolian vertical direction",
+        "pass" : true
+      },
+      {
+        "name" : "baosao never emits CJK vertical direction",
+        "pass" : true
+      },
+      {
+        "name" : "baosao XML parts are well formed",
         "pass" : true
       },
       {
@@ -374,6 +469,11 @@
       "summary" : "A4 横向 · 版心 257×170 mm",
       "totalPages" : 6
     },
+    "pageGapRect" : {
+      "h" : 0,
+      "left" : 1153,
+      "w" : 25.5
+    },
     "previewDiagnostics" : {
       "bodyHTMLLength" : 1339,
       "bodyRect" : {
@@ -474,7 +574,162 @@
 
       ],
       "wideCount" : 0
-    }
+    },
+    "spacerProbe" : {
+      "after" : [
+        {
+          "h" : 200,
+          "i" : 0,
+          "left" : 8,
+          "top" : 0,
+          "w" : 22
+        },
+        {
+          "h" : 200,
+          "i" : 1,
+          "left" : 38,
+          "top" : 0,
+          "w" : 22
+        },
+        {
+          "h" : 200,
+          "i" : 2,
+          "left" : 69,
+          "top" : 0,
+          "w" : 22
+        },
+        {
+          "h" : 200,
+          "i" : 3,
+          "left" : 99,
+          "top" : 0,
+          "w" : 22
+        },
+        {
+          "h" : 200,
+          "i" : 4,
+          "left" : 130,
+          "top" : 0,
+          "w" : 22
+        },
+        {
+          "h" : 200,
+          "i" : 5,
+          "left" : 186,
+          "top" : 0,
+          "w" : 22
+        },
+        {
+          "h" : 200,
+          "i" : 6,
+          "left" : 216,
+          "top" : 0,
+          "w" : 22
+        },
+        {
+          "h" : 200,
+          "i" : 7,
+          "left" : 247,
+          "top" : 0,
+          "w" : 22
+        }
+      ],
+      "before" : [
+        {
+          "h" : 200,
+          "i" : 0,
+          "left" : 8,
+          "top" : 0,
+          "w" : 22
+        },
+        {
+          "h" : 200,
+          "i" : 1,
+          "left" : 38,
+          "top" : 0,
+          "w" : 22
+        },
+        {
+          "h" : 200,
+          "i" : 2,
+          "left" : 69,
+          "top" : 0,
+          "w" : 22
+        },
+        {
+          "h" : 200,
+          "i" : 3,
+          "left" : 99,
+          "top" : 0,
+          "w" : 22
+        },
+        {
+          "h" : 200,
+          "i" : 4,
+          "left" : 130,
+          "top" : 0,
+          "w" : 22
+        },
+        {
+          "h" : 200,
+          "i" : 5,
+          "left" : 160,
+          "top" : 0,
+          "w" : 22
+        },
+        {
+          "h" : 200,
+          "i" : 6,
+          "left" : 190,
+          "top" : 0,
+          "w" : 22
+        },
+        {
+          "h" : 200,
+          "i" : 7,
+          "left" : 221,
+          "top" : 0,
+          "w" : 22
+        }
+      ],
+      "block5After" : {
+        "h" : 200,
+        "i" : 5,
+        "left" : 186,
+        "top" : 0,
+        "w" : 22
+      },
+      "block5Before" : {
+        "h" : 200,
+        "i" : 5,
+        "left" : 160,
+        "top" : 0,
+        "w" : 22
+      },
+      "columnsAfter" : 8,
+      "columnsBefore" : 8,
+      "forcedBreak" : true,
+      "host" : {
+        "h" : 200,
+        "w" : 600
+      },
+      "spacerRect" : {
+        "h" : 0,
+        "left" : 152,
+        "top" : 0,
+        "w" : 26
+      }
+    },
+    "timings" : [
+      {
+        "label" : "start",
+        "ms" : 0
+      },
+      {
+        "label" : "end",
+        "ms" : 2386
+      }
+    ]
   },
   "snapshot" : "$HOME\/WorkBuddy AI\/1\/outputs\/Mori-Mac-preview.png",
   "webViewAttached" : true,

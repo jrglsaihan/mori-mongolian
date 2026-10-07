@@ -258,9 +258,12 @@ svg { display: block; }
 #paper { position: relative; }
 #pageOverlay { position: absolute; inset: 0; pointer-events: none; z-index: 0; }
 #editor { position: relative; z-index: 1; }
-.page-boundary { position: absolute; top: 0; width: 0; border-left: 1px dashed #9aa88c; }
-.page-boundary::after { position: absolute; top: 0; right: -7px; width: 6px; height: 100%; background: linear-gradient(to right, #ffffff00, #faf7ef); content: ''; }
-.page-boundary-label { position: absolute; bottom: -17px; left: 5px; color: #7d8a72; font-size: 9px; letter-spacing: .5px; white-space: nowrap; }
+/* Real page separation: a zero-height spacer of the gap's width consumes layout
+   space between pages, and the band below draws the canvas colour showing through. */
+#editor .ProseMirror .page-gap { width: 30px; height: 0; }
+.page-frame { position: absolute; top: 0; background: var(--paper); border: 1px solid #ded9c8; border-radius: 2px; box-shadow: 0 6px 22px #00000030; }
+.page-frame-label { position: absolute; bottom: -16px; left: 0; color: #7d8a72; font-size: 9px; letter-spacing: .5px; white-space: nowrap; }
+.page-gap-band { position: absolute; top: 0; background: #59614f; }
 /* Punctuation glyphs sit against one edge of the em box in vertical layout; the
    offset and scale are user-tunable and never change the letters themselves. */
 #editor .ProseMirror .mori-punct { position: relative; left: var(--punct-shift, 0); font-size: calc(1em * var(--punct-scale, 1)); }

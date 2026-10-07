@@ -706,19 +706,19 @@ private final class MoriApplication: NSObject, NSApplicationDelegate, NSWindowDe
 
     private func saveDocument(id: Any, payload: [String: Any]) {
         guard let kind = payload["kind"] as? String,
-              ["mglx", "txt", "html"].contains(kind), let requestedName = payload["name"] as? String else {
-            reply(id: id, error: "save requires name and kind (mglx, txt, or html)."); return
+              ["mglx", "txt", "html", "docx"].contains(kind), let requestedName = payload["name"] as? String else {
+            reply(id: id, error: "save requires name and kind (mglx, txt, html or docx)."); return
         }
         let data: Data
         if let content = payload["content"] as? String { data = Data(content.utf8) }
-        else if kind == "txt", let base64 = payload["base64"] as? String, let decoded = Data(base64Encoded: base64), decoded.count <= maximumOpenBytes { data = decoded }
-        else { reply(id: id, error: "save requires valid content or original text bytes."); return }
+        else if ["txt", "docx"].contains(kind), let base64 = payload["base64"] as? String, let decoded = Data(base64Encoded: base64), decoded.count <= maximumOpenBytes { data = decoded }
+        else { reply(id: id, error: "save requires valid content or original bytes."); return }
         guard data.count <= maximumOpenBytes else { reply(id: id, error: "The exported document exceeds the 64 MB limit. Split the content before saving."); return }
         guard beginModal(id: id) else { return }
         let panel = NSSavePanel()
         panel.title = "Save Mongolian Document"
         panel.canCreateDirectories = true
-        panel.allowedContentTypes = [kind == "mglx" ? documentType : (kind == "txt" ? .plainText : .html)]
+        panel.allowedContentTypes = [kind == "mglx" ? documentType : (kind == "txt" ? .plainText : (kind == "docx" ? (UTType(filenameExtension: "docx") ?? .data) : .html))]
         panel.allowsOtherFileTypes = false
         let basename = (requestedName as NSString).lastPathComponent
         let stem = (basename as NSString).deletingPathExtension
