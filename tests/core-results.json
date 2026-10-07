@@ -1,7 +1,7 @@
 {
   "ok": true,
-  "passed": 49,
-  "total": 49,
+  "passed": 56,
+  "total": 56,
   "tests": [
     {
       "name": "UTF8 exact control preservation",
@@ -197,6 +197,34 @@
     },
     {
       "name": "mark attrs survive JSON roundtrip",
+      "pass": true
+    },
+    {
+      "name": "punctuation runs are detected as ranges",
+      "pass": true
+    },
+    {
+      "name": "Mongolian punctuation is flagged separately",
+      "pass": true
+    },
+    {
+      "name": "letters are never tagged as punctuation",
+      "pass": true
+    },
+    {
+      "name": "consecutive punctuation forms one run",
+      "pass": true
+    },
+    {
+      "name": "punct shift is clamped to ±0.5 em",
+      "pass": true
+    },
+    {
+      "name": "punct scale is clamped",
+      "pass": true
+    },
+    {
+      "name": "punct settings default and round trip",
       "pass": true
     }
   ]

@@ -19,6 +19,26 @@ export function safeSize(v){const n=Number(v);return Number.isFinite(n)&&n>=8&&n
 export function safeLeading(v){const n=Number(v);return Number.isFinite(n)&&n>=1&&n<=3?n:null;}
 export function safeIndent(v){const n=Number(v);return Number.isFinite(n)&&n>=0&&n<=12?n:0;}
 export function safeAlign(v){return ALIGNMENTS.includes(v)?v:null;}
+export function safePunctShift(v){const n=Number(v);return Number.isFinite(n)?Math.min(0.5,Math.max(-0.5,Math.round(n*100)/100)):-0.15;}
+export function safeLeadingScale(v){const n=Number(v);return Number.isFinite(n)?Math.min(1.6,Math.max(0.8,Math.round(n*100)/100)):1;}
+
+// CJK punctuation and quotation marks. In vertical layout these glyphs are drawn
+// against one edge of the em box by the font, which in a Mongolian column reads as
+// "shifted right" or "too much spacing"; they are tagged so the offset can be tuned.
+export const PUNCT_RE=/[\u2018\u2019\u201C\u201D\u2026\u3001\u3002\u3008-\u3011\uFF01-\uFF0F\uFF1A-\uFF1F\uFF3B-\uFF3D\uFF5B-\uFF5D]/;
+export const MONGOL_PUNCT_RE=/[\u1800-\u1803\u1805\u1806\u1807\u1809\u180A]/;
+export function punctuationRuns(text){
+  const runs=[];let i=0;
+  while(i<text.length){
+    const isPunct=PUNCT_RE.test(text[i])||MONGOL_PUNCT_RE.test(text[i]);
+    if(!isPunct){i++;continue;}
+    let j=i+1;
+    while(j<text.length&&(PUNCT_RE.test(text[j])||MONGOL_PUNCT_RE.test(text[j])))j++;
+    runs.push({from:i,to:j,mongolian:MONGOL_PUNCT_RE.test(text[i])});
+    i=j;
+  }
+  return runs;
+}
 
 function blockStyle(a){
   const style=[];
@@ -131,7 +151,9 @@ export function validateFile(input){
     leading:LEADINGS.includes(Number(s.leading))?Number(s.leading):1.8,
     alignment:ALIGNMENTS.includes(s.alignment)?s.alignment:'start',
     margin:[32,48,64].includes(Number(s.margin))?Number(s.margin):48,
-    page:normalizePage(typeof s.page==='string'?{size:s.page}:s.page)
+    page:normalizePage(typeof s.page==='string'?{size:s.page}:s.page),
+    punctShift:safePunctShift(s.punctShift),
+    punctScale:safeLeadingScale(s.punctScale)
   };
   const originals=Array.isArray(data.originals)?data.originals.filter(x=>x&&typeof x.name==='string'&&typeof x.base64==='string'&&/^[A-Za-z0-9+/=]*$/.test(x.base64)).slice(0,20):[];
   return {...data,doc,settings,originals};

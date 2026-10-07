@@ -201,6 +201,15 @@ svg { display: block; }
   color-scheme: light;
   box-shadow: 0 14px 40px #00000026, 0 2px 6px #0000001a;
 }
+/* CJK punctuation needs a font with vertical forms (vert/vrt2). Without it the
+   glyphs are only rotated and sit against one edge of the em box, which reads as
+   "too much spacing" or "shifted right" in a vertical line. */
+@font-face {
+  font-family: 'Mori Punct';
+  src: local('Songti SC'), local('STSong'), local('Heiti SC'), local('PingFang SC'),
+       local('Hiragino Sans'), local('Apple SD Gothic Neo');
+  unicode-range: U+2018-201D, U+2026, U+3001-3002, U+3008-3011, U+FF01-FF0F, U+FF1A-FF1F, U+FF3B-FF3D, U+FF5B-FF5D;
+}
 #editor { width: max-content; min-width: 840px; min-height: 520px; font-family: var(--doc-font), 'Noto Sans Mongolian', serif; font-size: var(--doc-size); font-synthesis: weight style; line-height: var(--doc-leading); color: var(--doc-color); }
 #editor .ProseMirror {
   position: relative;
@@ -246,6 +255,16 @@ svg { display: block; }
 #editor .ProseMirror-gapcursor::after { position: absolute; width: 1px; height: 20px; background: var(--doc-color); content: ''; }
 #editor .ProseMirror-focused .ProseMirror-gapcursor { display: block; }
 #paper.guides #editor, #paper.show-guides #editor, #paper[data-guides='true'] #editor { outline: 1px dashed #a7b09a; outline-offset: 12px; }
+#paper { position: relative; }
+#pageOverlay { position: absolute; inset: 0; pointer-events: none; z-index: 0; }
+#editor { position: relative; z-index: 1; }
+.page-boundary { position: absolute; top: 0; width: 0; border-left: 1px dashed #9aa88c; }
+.page-boundary::after { position: absolute; top: 0; right: -7px; width: 6px; height: 100%; background: linear-gradient(to right, #ffffff00, #faf7ef); content: ''; }
+.page-boundary-label { position: absolute; bottom: -17px; left: 5px; color: #7d8a72; font-size: 9px; letter-spacing: .5px; white-space: nowrap; }
+/* Punctuation glyphs sit against one edge of the em box in vertical layout; the
+   offset and scale are user-tunable and never change the letters themselves. */
+#editor .ProseMirror .mori-punct { position: relative; left: var(--punct-shift, 0); font-size: calc(1em * var(--punct-scale, 1)); }
+#editor .ProseMirror .mori-punct-mn { left: calc(var(--punct-shift, 0) * 0.35); }
 .paper-bottom-caption { display: flex; align-self: stretch; justify-content: space-between; gap: 20px; padding-top: 14px; color: #79856f; font-size: 9px; letter-spacing: .8px; }
 .preview-note { display: flex; align-items: center; justify-content: center; gap: 7px; flex: 0 0 auto; min-height: 33px; padding: 7px 16px; border-top: 1px solid var(--border-subtle); color: #9ba68e; font-size: 10px; line-height: 1.5; }
 .preview-note .icon { width: 13px; height: 13px; flex-basis: 13px; color: #8d9b7e; }

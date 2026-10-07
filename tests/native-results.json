@@ -198,6 +198,34 @@
         "pass" : true
       },
       {
+        "name" : "editor canvas height equals page content height",
+        "pass" : true
+      },
+      {
+        "name" : "page boundaries drawn while editing",
+        "pass" : true
+      },
+      {
+        "name" : "page boundaries are numbered",
+        "pass" : true
+      },
+      {
+        "name" : "page boundaries advance left to right",
+        "pass" : true
+      },
+      {
+        "name" : "portrait canvas follows page orientation",
+        "pass" : true
+      },
+      {
+        "name" : "portrait content box is taller than wide",
+        "pass" : true
+      },
+      {
+        "name" : "portrait repaginates",
+        "pass" : true
+      },
+      {
         "name" : "page preview opens with rendered pages",
         "pass" : true
       },
@@ -284,6 +312,44 @@
       "Songti TC",
       "STSong"
     ],
+    "multicolProbe" : {
+      "blocks" : [
+        {
+          "h" : 200,
+          "left" : 0,
+          "top" : 0,
+          "w" : 400
+        },
+        {
+          "h" : 200,
+          "left" : 0,
+          "top" : 115,
+          "w" : 400
+        },
+        {
+          "h" : 200,
+          "left" : 0,
+          "top" : 230,
+          "w" : 400
+        },
+        {
+          "h" : 200,
+          "left" : 0,
+          "top" : 345,
+          "w" : 400
+        }
+      ],
+      "columnsAdvanceHorizontally" : false,
+      "computed" : {
+        "columnCount" : "2",
+        "columnGap" : "30px",
+        "writingMode" : "vertical-lr"
+      },
+      "host" : {
+        "h" : 200,
+        "w" : 400
+      }
+    },
     "ok" : true,
     "pageExample" : {
       "basePitch" : 50.399999999999999,
@@ -338,7 +404,77 @@
       "rootChildren" : 2,
       "srcdocLength" : 2696
     },
-    "previewPages" : 2
+    "previewPages" : 2,
+    "punctuationMetrics" : {
+      "font" : "Mori Noto",
+      "fontSize" : 28,
+      "fontsMissingPunctuation" : [
+        "Academy Engraved LET",
+        "Al Bayan",
+        "Al Nile",
+        "Al Tarikh",
+        "American Typewriter",
+        "Andale Mono",
+        "Apple Braille",
+        "Apple Chancery",
+        "Apple Color Emoji",
+        "Apple SD Gothic Neo",
+        "Apple Symbols",
+        "AppleGothic",
+        "AppleMyungjo",
+        "Arial",
+        "Arial Black"
+      ],
+      "menkPunctuation" : [
+        {
+          "family" : "Menk Amgalang StdEx Tig",
+          "missing" : [
+
+          ],
+          "ok" : true
+        },
+        {
+          "family" : "Menk Budun StdEx Tig",
+          "missing" : [
+
+          ],
+          "ok" : true
+        },
+        {
+          "family" : "Menk Doroge StdEx Tig",
+          "missing" : [
+
+          ],
+          "ok" : true
+        },
+        {
+          "family" : "Menk Egulen StdEx Tig",
+          "missing" : [
+
+          ],
+          "ok" : true
+        },
+        {
+          "family" : "Menk Erihe StdEx Tig",
+          "missing" : [
+
+          ],
+          "ok" : true
+        },
+        {
+          "family" : "Menk Garqag StdEx Tig",
+          "missing" : [
+
+          ],
+          "ok" : true
+        }
+      ],
+      "narrowCount" : 0,
+      "rects" : [
+
+      ],
+      "wideCount" : 0
+    }
   },
   "snapshot" : "$HOME\/WorkBuddy AI\/1\/outputs\/Mori-Mac-preview.png",
   "webViewAttached" : true,

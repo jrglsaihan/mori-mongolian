@@ -1,19 +1,19 @@
-import {EditorState,TextSelection,AllSelection} from 'prosemirror-state';
+import {EditorState,TextSelection,AllSelection,Plugin} from 'prosemirror-state';
 import fallbackFont from '../vendor/NotoSansMongolian-Regular.ttf';
-import {EditorView} from 'prosemirror-view';
+import {EditorView,Decoration,DecorationSet} from 'prosemirror-view';
 import {DOMSerializer,DOMParser as PMDOMParser} from 'prosemirror-model';
 import {baseKeymap,toggleMark,setBlockType,chainCommands,exitCode} from 'prosemirror-commands';
 import {keymap} from 'prosemirror-keymap';
 import {history,undo,redo} from 'prosemirror-history';
 import {wrapInList,splitListItem,liftListItem} from 'prosemirror-schema-list';
 import {schema,profiles,plainText,textDocument,inspectText,decodeBytes,b64ToBytes,bytesToB64,validateFile,initConverter,convertText,escapeHTML,cssString,
-  pageGeometry,pageSummary,normalizePage,DEFAULT_PAGE,DOC_VERSION,safeFont,safeSize,ALIGNMENTS,LEADINGS,FONT_SIZES,HEADING_SCALE} from './core.js';
+  pageGeometry,pageSummary,normalizePage,DEFAULT_PAGE,DOC_VERSION,safeFont,safeSize,ALIGNMENTS,LEADINGS,FONT_SIZES,HEADING_SCALE,punctuationRuns} from './core.js';
 import {computePagination,paginatedHTML,blocksToHTML} from './paginate.js';
 
 const $=id=>document.getElementById(id),native=!!window.webkit?.messageHandlers?.mori;
 let seq=0,pending=new Map(),dirty=false,revision=0,draftTimer,composing=false,fonts=[],profile='2023',originals=[],converterVersion='unavailable';
-let settings={font:'Mori Noto',size:28,leading:1.8,alignment:'start',margin:48,page:{...DEFAULT_PAGE,margins:{...DEFAULT_PAGE.margins}}};
-let latestSavedRevision=0,conversionLog=[],docx={available:false,path:null},lastPagination=null,previewPages=0,previewDiagnostics=null,docxProbe=null;
+let settings={font:'Mori Noto',size:28,leading:1.8,alignment:'start',margin:48,punctShift:-0.15,punctScale:1,page:{...DEFAULT_PAGE,margins:{...DEFAULT_PAGE.margins}}};
+let latestSavedRevision=0,conversionLog=[],docx={available:false,path:null},lastPagination=null,previewPages=0,previewDiagnostics=null,docxProbe=null,punctuationMetrics=null,multicolProbe=null;
 
 window.moriNativeReply=({id,result,error})=>{const p=pending.get(id);if(!p)return;pending.delete(id);error?p.reject(new Error(error)):p.resolve(result);};
 function bridge(action,payload={}){if(!native)return Promise.reject(new Error('此功能请在 Mori Mac 应用中使用。浏览器仅提供编辑预览。'));return new Promise((resolve,reject)=>{const id=String(++seq);pending.set(id,{resolve,reject});window.webkit.messageHandlers.mori.postMessage({id,action,payload});});}
@@ -26,7 +26,19 @@ function serialize(){return {format:'mori-document',version:DOC_VERSION,title:$(
 function documentJSON(data,pretty=false){const content=JSON.stringify(data,null,pretty?2:undefined);if(new TextEncoder().encode(content).length>64*1024*1024)throw new Error('文档超过64MB，无法安全保存和重开。请分拆内容。');return content;}
 async function saveDraft(){if(!native||composing)return;const r=revision;try{await bridge('draftSave',{content:documentJSON(serialize())});if(r===revision)$('saveState').textContent=dirty?'恢复副本已备份 · 请保存文档':'文档已保存';}catch(e){$('saveState').textContent='恢复副本备份失败';fail(e);}}
 
-function plugins(){return [history(),keymap({
+function punctuationPlugin(){
+  return new Plugin({props:{decorations(state){
+    const decorations=[];
+    state.doc.descendants((node,pos)=>{
+      if(!node.isText||!node.text)return;
+      for(const run of punctuationRuns(node.text)){
+        decorations.push(Decoration.inline(pos+run.from,pos+run.to,{class:run.mongolian?'mori-punct mori-punct-mn':'mori-punct'}));
+      }
+    });
+    return DecorationSet.create(state.doc,decorations);
+  }}});
+}
+function plugins(){return [history(),punctuationPlugin(),keymap({
   'Mod-z':undo,'Mod-Shift-z':redo,'Mod-y':redo,
   'Mod-b':toggleMark(schema.marks.strong),'Mod-i':toggleMark(schema.marks.em),'Mod-u':toggleMark(schema.marks.underline),
   'Mod-.':toggleMark(schema.marks.sup),'Mod-,':toggleMark(schema.marks.sub),
@@ -48,7 +60,7 @@ const sample=schema.node('doc',null,[
 const view=new EditorView($('editor'),{
   state:EditorState.create({schema,doc:sample,plugins:plugins()}),
   attributes:{lang:'mn-Mong',spellcheck:'false','aria-label':'蒙古文竖排富文本编辑器','data-placeholder':'开始书写…'},
-  dispatchTransaction(tr){view.updateState(view.state.apply(tr));if(tr.docChanged)markDirty();syncToolbar();},
+  dispatchTransaction(tr){view.updateState(view.state.apply(tr));if(tr.docChanged)markDirty();syncToolbar();scheduleOverlay();},
   handleDOMEvents:{
     compositionstart(){composing=true;$('compositionStatus').textContent='正在组字 · 保留输入法候选';return false;},
     compositionend(){composing=false;$('compositionStatus').textContent='系统输入法就绪';clearTimeout(draftTimer);draftTimer=setTimeout(saveDraft,1000);return false;}
@@ -121,11 +133,19 @@ function syncToolbar(){
   $('blockKind').textContent=parent.type===schema.nodes.heading?('标题 '+parent.attrs.level):(parent.type===schema.nodes.bullet_list?'列表':'正文');
 }
 function applySettings(){
-  const font=cssString(safeFont(settings.font))+', "Mori Noto", sans-serif';
+  const font=cssString(safeFont(settings.font))+', "Mori Noto", "Mori Punct", sans-serif';
+  const geometry=pageGeometry(settings.page);
   document.documentElement.style.setProperty('--doc-font',font);
   document.documentElement.style.setProperty('--doc-size',settings.size+'px');
   document.documentElement.style.setProperty('--doc-leading',settings.leading);
   document.documentElement.style.setProperty('--doc-margin',settings.margin+'px');
+  document.documentElement.style.setProperty('--punct-shift',settings.punctShift+'em');
+  document.documentElement.style.setProperty('--punct-scale',String(settings.punctScale));
+  document.documentElement.style.setProperty('--page-content-height',geometry.contentHeightPx.toFixed(2)+'px');
+  // The editing canvas takes the page's content height so that one column of text
+  // equals one page; content then wraps to the next column exactly at a page edge.
+  view.dom.style.height=geometry.contentHeightPx.toFixed(2)+'px';
+  $('editor').style.height=geometry.contentHeightPx.toFixed(2)+'px';
   view.dom.style.textAlign=settings.alignment;
   $('fontPreview').style.fontFamily=font;
   if($('fontSelect'))$('fontSelect').value=settings.font;
@@ -134,8 +154,37 @@ function applySettings(){
   if($('pageOrientation'))$('pageOrientation').value=settings.page.orientation;
   if($('pageMarginPreset'))$('pageMarginPreset').value=marginPreset(settings.page.margins);
   if($('pageInfo'))$('pageInfo').textContent=pageSummary(settings.page);
+  if($('punctShift'))$('punctShift').value=String(settings.punctShift);
+  if($('punctScale'))$('punctScale').value=String(settings.punctScale);
   $('paperLabel').textContent='横向连续画布 · '+pageSummary(settings.page);
   $('paper').style.zoom=Number($('zoom').value)/100;
+  scheduleOverlay();
+}
+let overlayTimer=null,overlayPagination=null;
+function scheduleOverlay(){clearTimeout(overlayTimer);overlayTimer=setTimeout(renderPageOverlay,160);}
+function renderPageOverlay(){
+  const host=$('pageOverlay');if(!host)return;
+  const guides=$('pageGuides')?$('pageGuides').checked:false;
+  if(!guides){host.replaceChildren();overlayPagination=null;return;}
+  const geometry=pageGeometry(settings.page);
+  const pag=computePagination(view.state.doc,settings);
+  overlayPagination=pag;
+  const editorRect=view.dom.getBoundingClientRect();
+  const frag=document.createDocumentFragment();
+  pag.pages.forEach((indexes,pageIndex)=>{
+    const first=pag.blocks[indexes[0]];
+    if(!first)return;
+    const node=view.nodeDOM(first.offset);
+    if(!node||typeof node.getBoundingClientRect!=='function')return;
+    const rect=node.getBoundingClientRect();
+    const marker=document.createElement('div');
+    marker.className='page-boundary';
+    marker.style.left=(rect.left-editorRect.left).toFixed(1)+'px';
+    marker.style.height=geometry.contentHeightPx.toFixed(1)+'px';
+    marker.innerHTML='<span class="page-boundary-label">第 '+(pageIndex+1)+' 页</span>';
+    frag.appendChild(marker);
+  });
+  host.replaceChildren(frag);
 }
 function marginPreset(m){const values=[m.top,m.right,m.bottom,m.left];const same=values.every(v=>v===values[0]);if(!same)return 'custom';return values[0]<=14?'12':values[0]>=28?'30':'20';}
 function applyProfile(){for(const b of document.querySelectorAll('[data-profile]')){const active=b.dataset.profile===profile;b.classList.toggle('active',active);b.setAttribute('aria-pressed',String(active));}$('encodingStatus').textContent=profiles[profile].label+' · 原文保留';$('encodingHint').textContent=profiles[profile].detail;}
@@ -262,6 +311,9 @@ $('textColor').oninput=()=>{if(busy())return;toggleMark(schema.marks.ink,{color:
 $('pageSize').onchange=()=>{settings.page.size=$('pageSize').value;applySettings();markDirty();};
 $('pageOrientation').onchange=()=>{settings.page.orientation=$('pageOrientation').value;applySettings();markDirty();};
 $('pageMarginPreset').onchange=()=>{const v=Number($('pageMarginPreset').value);if(!Number.isFinite(v))return;settings.page.margins={top:v,right:v,bottom:v,left:v};applySettings();markDirty();};
+$('punctShift').onchange=()=>{settings.punctShift=Number($('punctShift').value);applySettings();markDirty();};
+$('punctScale').onchange=()=>{settings.punctScale=Number($('punctScale').value);applySettings();markDirty();};
+$('pageGuides').onchange=()=>{renderPageOverlay();};
 $('fontFilter').onchange=renderFonts;
 $('docTitle').maxLength=200;$('docTitle').oninput=()=>{updateTitle();markDirty();};
 $('guides').onchange=()=>{const on=$('guides').checked;$('paper').classList.toggle('show-guides',on);view.dom.style.outline=on?'1px dashed #9eac8d':'';};
@@ -356,6 +408,78 @@ window.moriSmokeTest=async()=>{const checks=[],check=(name,pass)=>checks.push({n
    try{const probe=await bridge('docxProbe');docxProbe=probe;check('docx conversion round trip',probe.ok===true);}
    catch(e){check('docx conversion round trip',false);}
  }
+ const punctSample='“双引号” ‘单引号’ 「直角」 ᠂᠃᠀᠁ 、。，． ,.;:!? "\'';
+ const punctDoc=schema.node('doc',null,[
+   schema.node('paragraph',null,schema.text('“双引号” ‘单引号’ 「直角」')),
+   schema.node('paragraph',null,schema.text('᠂᠃᠀᠁ 、。，．')),
+   schema.node('paragraph',null,schema.text(', . ; : ! ? " \'')),
+   schema.node('paragraph',null,schema.text('“ᠮᠣᠩᠭᠣᠯ” ᠪᠢᠴᠢᠭ᠃'))
+ ]);
+ load({format:'mori-document',version:DOC_VERSION,title:'标点诊断',profile:'2023',settings,doc:punctDoc.toJSON()});
+ await new Promise(r=>requestAnimationFrame(()=>requestAnimationFrame(r)));
+ {
+   const p=view.dom.querySelector('p');const node=p?.firstChild;const rects=[];
+   if(node&&node.nodeType===3){
+     const range=document.createRange();
+     const base=settings.size;
+     for(let i=0;i<node.data.length;i++){
+       range.setStart(node,i);range.setEnd(node,i+1);
+       const r=range.getBoundingClientRect();
+       rects.push({ch:node.data[i],cp:'U+'+node.data.codePointAt(i).toString(16).toUpperCase().padStart(4,'0'),
+         adv:Math.round(r.height*10)/10,thick:Math.round(r.width*10)/10,top:Math.round(r.top*10)/10,ratio:Math.round(r.height/base*100)/100});
+     }
+   }
+   punctuationMetrics={fontSize:settings.size,font:settings.font,rects,
+     wideCount:rects.filter(r=>r.ratio>1.15).length,
+     narrowCount:rects.filter(r=>r.ratio<0.85).length,
+     fontsMissingPunctuation:fonts.filter(f=>f.hasPunctuation===false).map(f=>f.family).filter((v,i,a)=>a.indexOf(v)===i).slice(0,15),
+     menkPunctuation:fonts.filter(f=>/Menk|Menksoft/i.test(f.family)).map(f=>({family:f.family,ok:f.hasPunctuation,missing:f.missingPunctuation})).slice(0,6)};
+ }
+ {
+   const host=document.createElement('div');
+   host.style.cssText='position:absolute;left:-100000px;top:0;width:400px;height:200px;writing-mode:vertical-lr;'+
+     'column-count:2;column-gap:30px;font-size:14px;line-height:1.6;font-family:"Mori Noto",sans-serif';
+   const kids=[];
+   for(let i=0;i<4;i++){
+     const d=document.createElement('div');
+     d.textContent='B'+i+' '+'ᠮᠣᠩᠭᠣᠯ ᠪᠢᠴᠢᠭ '.repeat(20);
+     host.appendChild(d);kids.push(d);
+   }
+   document.body.appendChild(host);
+   await new Promise(r=>requestAnimationFrame(()=>requestAnimationFrame(r)));
+   const hr=host.getBoundingClientRect();
+   multicolProbe={
+     host:{w:Math.round(hr.width),h:Math.round(hr.height)},
+     computed:{writingMode:getComputedStyle(host).writingMode,columnCount:getComputedStyle(host).columnCount,columnGap:getComputedStyle(host).columnGap},
+     blocks:kids.map(k=>{const r=k.getBoundingClientRect();return{left:Math.round(r.left-hr.left),top:Math.round(r.top-hr.top),w:Math.round(r.width),h:Math.round(r.height)};}),
+     columnsAdvanceHorizontally:new Set(kids.map(k=>Math.round(k.getBoundingClientRect().top))).size===1
+   };
+   host.remove();
+ }
+ {
+   const long=schema.node('doc',null,Array.from({length:30},(_,i)=>schema.node('paragraph',null,schema.text('ᠮᠣᠩᠭᠣᠯ ᠪᠢᠴᠢᠭ ᠲᠠᠯ᠎ᠠ ᠨᠤᠲᠤᠭ ᠤᠰᠤ ᠠᠭᠤᠯᠠ᠃ '+String(i+1)))));
+   load({format:'mori-document',version:DOC_VERSION,title:'分页书写验证',profile:'2023',settings,doc:long.toJSON()});
+   await new Promise(r=>setTimeout(r,320));
+   const landGeo=pageGeometry(settings.page);
+   const boundaries=document.querySelectorAll('#pageOverlay .page-boundary').length;
+   const labels=Array.from(document.querySelectorAll('#pageOverlay .page-boundary-label')).map(n=>n.textContent);
+   check('editor canvas height equals page content height',Math.abs(parseFloat(view.dom.style.height)-landGeo.contentHeightPx)<1);
+   check('page boundaries drawn while editing',boundaries>=2);
+   check('page boundaries are numbered',labels.length===boundaries&&labels[0]==='第 1 页');
+   check('page boundaries advance left to right',(()=>{
+     const xs=Array.from(document.querySelectorAll('#pageOverlay .page-boundary')).map(m=>parseFloat(m.style.left));
+     return xs.length>=2&&xs[0]>0&&xs.every((v,i)=>i===0||v>xs[i-1]);
+   })());
+   settings.page.orientation='portrait';applySettings();
+   await new Promise(r=>setTimeout(r,320));
+   const portGeo=pageGeometry(settings.page);
+   const portBoundaries=document.querySelectorAll('#pageOverlay .page-boundary').length;
+   check('portrait canvas follows page orientation',Math.abs(parseFloat(view.dom.style.height)-portGeo.contentHeightPx)<1);
+   check('portrait content box is taller than wide',portGeo.contentHeightPx>portGeo.contentWidthPx);
+   check('portrait repaginates',portBoundaries>=2&&portBoundaries!==boundaries);
+   settings.page.orientation='landscape';applySettings();
+   await new Promise(r=>setTimeout(r,200));
+ }
  load(before);dirty=false;clearTimeout(draftTimer);
  if(native)await bridge('dirty',{dirty:false});
  $('saveState').textContent='本地工作区 · 离线就绪';
@@ -406,7 +530,15 @@ window.moriSmokeTest=async()=>{const checks=[],check=(name,pass)=>checks.push({n
    previewDiagnostics.probes=probes;
  }catch(e){check('page preview opens with rendered pages',false);}
  hideModal();
- load(before);
+ load({format:'mori-document',version:DOC_VERSION,title:'标点诊断',profile:'2023',settings,
+   doc:schema.node('doc',null,Array.from({length:9},(_,i)=>[
+     schema.node('paragraph',null,schema.text('“双引号” ‘单引号’ 「直角」 '+(i+1))),
+     schema.node('paragraph',null,schema.text('᠂᠃᠀᠁ 、。，． ᠮᠣᠩᠭᠣᠯ ᠪᠢᠴᠢᠭ᠃')),
+     schema.node('paragraph',null,schema.text(', . ; : ! ? " \'')),
+     schema.node('paragraph',null,schema.text('“ᠮᠣᠩᠭᠣᠯ” ᠪᠢᠴᠢᠭ᠃ ᠲᠠᠯ᠎ᠠ ᠨᠤᠲᠤᠭ᠃'))
+   ]).flat()).toJSON()});
+ await new Promise(r=>setTimeout(r,320));
+ view.dispatch(view.state.tr.setSelection(TextSelection.atStart(view.state.doc)));view.dom.blur();
  dirty=false;clearTimeout(draftTimer);
  if(native)await bridge('dirty',{dirty:false});
  $('saveState').textContent='本地工作区 · 离线就绪';
@@ -418,7 +550,7 @@ window.moriSmokeTest=async()=>{const checks=[],check=(name,pass)=>checks.push({n
   pageExample:{summary:pageSummary(settings.page),totalPages:pagination.totalPages,blocks:pagination.blocks.length,overflow:pagination.overflow.length,
     capacity:pagination.capacity,basePitch:Math.round(pagination.basePitch*10)/10,contentHeightPx:Math.round(pagination.geometry.contentHeightPx),
     sample:pagination.blocks.slice(0,3).map(b=>({length:Math.round(b.length),weight:Math.round(b.weight*100)/100}))},
-  docxAvailable:docx.available,docxProbe,
+  docxAvailable:docx.available,docxProbe,punctuationMetrics,multicolProbe,
   previewPages,previewDiagnostics,
   boundary:'Smoke tests are not national-standard conformance or vendor IME certification.'};};
 

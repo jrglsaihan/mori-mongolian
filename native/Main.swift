@@ -771,12 +771,20 @@ private final class MoriApplication: NSObject, NSApplicationDelegate, NSWindowDe
                 let font = CTFontCreateWithName(name as CFString, 16, nil)
                 let letters: [UniChar] = [0x1820, 0x182E]
                 let privateLetters: [UniChar] = [0xE264]
+                let punctuation: [UniChar] = [0x2018, 0x2019, 0x201C, 0x201D, 0x1802, 0x1803, 0x3002, 0xFF0C]
                 var glyphs = [CGGlyph](repeating: 0, count: letters.count)
                 var privateGlyphs = [CGGlyph](repeating: 0, count: privateLetters.count)
+                var punctuationGlyphs = [CGGlyph](repeating: 0, count: punctuation.count)
                 let mongolian = CTFontGetGlyphsForCharacters(font, letters, &glyphs, letters.count) && glyphs.allSatisfy { $0 != 0 }
                 let pua = CTFontGetGlyphsForCharacters(font, privateLetters, &privateGlyphs, privateLetters.count) && privateGlyphs[0] != 0
+                _ = CTFontGetGlyphsForCharacters(font, punctuation, &punctuationGlyphs, punctuation.count)
+                var missing: [String] = []
+                for (index, glyph) in punctuationGlyphs.enumerated() where glyph == 0 {
+                    missing.append(String(format: "U+%04X", punctuation[index]))
+                }
                 result.append(["family": family, "postscript": CTFontCopyPostScriptName(font) as String,
-                               "hasMongolian": mongolian, "hasPUA": pua])
+                               "hasMongolian": mongolian, "hasPUA": pua,
+                               "hasPunctuation": missing.isEmpty, "missingPunctuation": missing])
             }
         }
         fontCache = result

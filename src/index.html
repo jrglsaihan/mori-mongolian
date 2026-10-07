@@ -194,7 +194,7 @@
               <svg viewBox="0 0 1000 24" preserveAspectRatio="none"><defs><pattern id="ruler-ticks" width="100" height="24" patternUnits="userSpaceOnUse"><path d="M0 24V10M10 24v-4m10 4v-4m10 4v-4m10 4v-4m10 4V14m10 10v-4m10 4v-4m10 4v-4m10 4v-4"/></pattern></defs><rect width="1000" height="24" fill="url(#ruler-ticks)"/></svg>
               <div class="ruler-numbers"><span>0</span><span>2</span><span>4</span><span>6</span><span>8</span><span>10</span><span>12</span><span>14</span><span>16</span><span>18</span><span>20</span></div>
             </div>
-            <section id="paper" aria-label="蒙古文书写纸张"><div id="editor"></div></section>
+            <section id="paper" aria-label="蒙古文书写纸张"><div id="pageOverlay" aria-hidden="true"></div><div id="editor"></div></section>
             <div class="paper-bottom-caption"><span>竖排蒙古文 · 横向延展</span><span id="blockKind">正文</span></div>
           </div>
         </div>
@@ -215,11 +215,20 @@
             <div class="section-heading"><h3 id="paragraphHeading">段落排版</h3><svg class="icon small-icon" aria-hidden="true"><use href="#i-vertical"/></svg></div>
             <label class="property-field" for="lineHeight"><span>段落行距</span><select id="lineHeight"><option value="1.4">1.4 倍</option><option value="1.6">1.6 倍</option><option value="1.8">1.8 倍</option><option value="2.1">2.1 倍</option></select></label>
             <div class="property-field"><span>缩进</span><output id="indentValue">0 em</output></div>
-            <p class="field-note">行距与缩进作用于当前段落或选区覆盖的段落。选择「文档默认值」会清除段落级覆盖。</p>
+            <label class="property-field" for="punctShift"><span>标点水平偏移</span><select id="punctShift" title="竖排下标点字形贴靠格子一侧，偏移可把它移回列中线">
+              <option value="-0.4">−0.40 em</option><option value="-0.3">−0.30 em</option><option value="-0.2">−0.20 em</option>
+              <option value="-0.15">−0.15 em（默认）</option><option value="-0.1">−0.10 em</option>
+              <option value="0">0 em（不偏移）</option><option value="0.1">+0.10 em</option><option value="0.2">+0.20 em</option>
+            </select></label>
+            <label class="property-field" for="punctScale"><span>标点字号</span><select id="punctScale" title="部分标点字形偏大，可单独缩放">
+              <option value="1">1.00（不缩放）</option><option value="0.9">0.90</option><option value="0.85">0.85</option><option value="0.8">0.80</option><option value="1.1">1.10</option>
+            </select></label>
+            <p class="field-note">行距与缩进作用于当前段落或选区覆盖的段落。标点偏移与缩放只影响标点，不改动字母。</p>
           </section>
           <section class="inspector-section" aria-labelledby="pageHeading">
             <div class="section-heading"><h3 id="pageHeading">页面设置</h3><span class="muted-label">分页</span></div>
-            <p id="pageInfoText" class="encoding-hint">纸张、方向与页边距在「页面布局」标签中调整。分页预览为只读排版结果。</p>
+            <p id="pageInfoText" class="encoding-hint">纸张、方向与页边距在「页面布局」标签中调整。编辑画布的高度等于页面版心，因此一列文字即一页。</p>
+            <label class="checkbox-field" for="pageGuides"><input id="pageGuides" type="checkbox" checked><span>显示分页边界与页码</span></label>
             <button id="pagePreviewOpen" class="inspector-button" type="button" data-action="pagePreview"><svg class="icon" aria-hidden="true"><use href="#i-pages"/></svg><span>分页预览</span><svg class="icon trailing-icon" aria-hidden="true"><use href="#i-chevron"/></svg></button>
             <button id="docxImportOpen" class="inspector-button" type="button" data-action="importDOCX"><svg class="icon" aria-hidden="true"><use href="#i-docx"/></svg><span>导入 DOCX</span><svg class="icon trailing-icon" aria-hidden="true"><use href="#i-chevron"/></svg></button>
             <button id="docxExportOpen" class="inspector-button" type="button" data-action="exportDOCX"><svg class="icon" aria-hidden="true"><use href="#i-export"/></svg><span>导出 DOCX</span><svg class="icon trailing-icon" aria-hidden="true"><use href="#i-chevron"/></svg></button>
